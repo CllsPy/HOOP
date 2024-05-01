@@ -4,19 +4,19 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-'''
-essa classe plota os modelos 
-(mecânicos ou condutividade)
 
-estilo: qual estilo de plotagem
-'''
 class Desenho_Mecanico:
+    '''
+    essa classe plota os modelos
+    (mecânicos ou condutividade)
+
+    '''
     def __init__(self, estilo):
         self.estilo = estilo # estilo da plotagem
 
         self.graphs = [] # lista com as informações geradas (e.g Eh, Fi...)
         self.nome_modelos = [] # nome dos modelos para o relatório
-        self.instancias_modelos = []
+        self.instancias_modelos = [] # instâncias dos modelos
 
         # detalhes da plotagem seaborn
         sns.set_palette('Paired')
@@ -25,16 +25,18 @@ class Desenho_Mecanico:
         plt.rcParams['figure.figsize'] = (8, 4)
 
 
-    '''
-    esse método desenha os modelos 
-    selecionados.
-    
-    objH: objeto da classe homogenizacao
-    modelo: modelo(s) escolhidos e.g Voigt
-    stats: mostrar distribuição (kde)
-    tresh_hold:  limite inferior do eixo x 
-    '''
     def desenha(self, objH=None, modelo=None, stats=None, tresh_hold=None):
+
+        '''
+        esse método desenha os modelos
+        selecionados.
+
+        objH: objeto da classe homogenizacao
+        modelo: modelo(s) escolhidos e.g Voigt
+        stats: mostrar distribuição (kde)
+        tresh_hold:  limite inferior do eixo x
+        '''
+
         if self.estilo == False:
             self.estilo = 'fixar_fracao'
 
@@ -108,6 +110,7 @@ class Desenho_Mecanico:
                     plt.legend()
                     plt.show()
 
+            # Se o estilo é poisson
             elif self.estilo=="poisson":
                 sns.lineplot(x=self.x, y=self.vh, label=label)
                 self.graphs.append((self.x, self.vh, label))
@@ -116,6 +119,7 @@ class Desenho_Mecanico:
                 plt.ylim(tresh_hold)
                 plt.show()
 
+                # Quando é pedido stats
                 if stats=="True":
                     label_kde= f'Kde: {objH.modH.tipo}'
                     fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 10))
@@ -126,6 +130,7 @@ class Desenho_Mecanico:
                     plt.legend()
                     plt.show()
 
+            # Se o estilo for "normalizar"
             elif self.estilo == "normalizar":
                 sns.lineplot(x=self.x, y=self.norm, label=label)
                 self.graphs.append((self.x, self.norm, label))
@@ -134,6 +139,7 @@ class Desenho_Mecanico:
                 plt.ylim(tresh_hold)
                 plt.show()
 
+                # Se for pedido stats
                 if stats=="True":
                     label_kde= f'Kde: {objH.modH.tipo}'
                     fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 10))
@@ -144,7 +150,7 @@ class Desenho_Mecanico:
                     plt.legend()
                     plt.show()
 
-            # este loop é destinado a plotar modelo de três fases
+            # Rste loop é destinado a plotar modelo de três fases
             elif len(objH.matH) == 3:
                 _range = int(objH.fi * 100) if objH.fi * 100 > 0 else 100
 
@@ -163,11 +169,13 @@ class Desenho_Mecanico:
                     plt.show()
                     self.graphs.append((self.x, self.E, label, self.Gh))
 
-    '''
-    função para plotagem de 
-    'n' fases
-    '''
+
     def fixar_fi_nfases(self, objH, modelo, Fi):
+        '''
+            função para plotagem de
+            'n' fases.
+        '''
+
         fiC, fmC = (Fi, Fi - 1)
         objH.analH.fi, objH.analH.fr, objH.analH.fm = (fiC, objH.analH.fr, fmC)
         objH.calc()
@@ -177,20 +185,27 @@ class Desenho_Mecanico:
 
 
     def poisson_homo(self, objH, modelo, Fi):
+        '''
+        Função vinculado ao estilo possion, é a função que realiza os cálculos
+        e corrige as frações
+        '''
+
         objH.analH.fi, objH.analH.fm = (Fi, Fi - 1)
         objH.calc()
         self.vh.append(objH.modH.vh) #criar uma variável flexível
         self.x.append(Fi)
 
-    '''
-    Essa função é acionada quando o estilo 
-    é o 'fixar_fracao'.
-    
-    objH: objeto da classe homog.
-    modelo: modelo usado
-    Fi: valor da fração
-    '''
     def fixar_fi(self, objH, modelo, Fi):
+
+        '''
+        Essa função é acionada quando o estilo
+        é o 'fixar_fracao'.
+
+        objH: objeto da classe homog.
+        modelo: modelo usado
+        Fi: valor da fração
+        '''
+
         objH.analH.fi, objH.analH.fm = (Fi, Fi - 1)
         objH.calc()
         self.E.append(objH.modH.Eh)
