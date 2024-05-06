@@ -5,100 +5,83 @@ import seaborn as sns
 
 
 
-class Desenho_Mecanico:
-    '''
-    essa classe plota os modelos
-    (mecânicos ou condutividade)
-
-    '''
+class DesenhoMecanico:
+    """
+    Esta classe plota modelos mecânicos ou de condutividade.
+    """
     def __init__(self, estilo):
-        self.estilo = estilo # estilo da plotagem
+        self.estilo = estilo
+        self.graphs = []
+        self.nome_modelos = []
+        self.instancias_modelos = []
 
-        self.graphs = [] # lista com as informações geradas (e.g Eh, Fi...)
-        self.nome_modelos = [] # nome dos modelos para o relatório
-        self.instancias_modelos = [] # instâncias dos modelos
-
-        # detalhes da plotagem seaborn
         sns.set_palette('Paired')
         sns.set_style("whitegrid")
         plt.rcParams['font.size'] = 8
         plt.rcParams['figure.figsize'] = (8, 4)
 
-
     def desenha(self, objH=None, modelo=None, stats=None, tresh_hold=None):
-
-        '''
-        esse método desenha os modelos
-        selecionados.
-
-        objH: objeto da classe homogenizacao
-        modelo: modelo(s) escolhidos e.g Voigt
-        stats: mostrar distribuição (kde)
-        tresh_hold:  limite inferior do eixo x
-        '''
-
-        if self.estilo == False:
+        """
+        Este método desenha os modelos selecionados.
+         """
+        if not self.estilo:
             self.estilo = 'fixar_fracao'
 
         if objH.analise_tipo == 'mecanica':
-            objH.modH = modelo # módelo plotado
-            label = f'{objH.modH.tipo}' # legenda para a plotagem
+            objH.modH = modelo
+            label = f'{objH.modH.tipo}'
 
-            '''
-            sempre que uma nova variável
-            precisar ser plotado, adicione aqui.
-            '''
-            self.E = [] # módulo de elasticidade
-            self.x = [] # fração
-            self.vh = [] # poisson
-            self.norm = [] # dados normalizados
-            self.Gh = [] # módulo cisalhamento
+            self.E = []
+            self.x = []
+            self.vh = []
+            self.norm = []
+            self.Gh = []
 
-            ## if para duas fases
             if len(objH.matH) == 2:
-                ## ajusta o o número de interações (corrigi)
                 _range = int(objH.fi * 100) if (objH.fi * 100) > 0 else 100
 
-                ## numéro de interações
                 for i in range(0, _range):
-                    Fi = i / 100 # Fi/Fração ou eixo x
-
-                    ## estilo default
+                    Fi = i / 100
                     if self.estilo == 'fixar_fracao':
-                        self.fixar_fi(objH, modelo, Fi) # chama a função que faz o cálculo
-
-                        plt.title('Módulo de Elasticidade Homogeneizado') # setta o título
-                        plt.xlabel('Fração') # setta informação do eixo x
-                        plt.ylabel('Eh') # setta informação do exigo y
-
-                    elif self.estilo == 'poisson': # caso o estilo seja 'poisson'.
-                        self.poisson_homo(objH, modelo, Fi) # chama a classe que faz o cálculo
-
+                        self.fixar_fi(objH, modelo, Fi)
+                        plt.title('Módulo de Elasticidade Homogeneizado')
+                        plt.xlabel('Fração')
+                        plt.ylabel('Eh')
+                    elif self.estilo == 'poisson':
+                        self.poisson_homo(objH, modelo, Fi)
                         plt.title('Poisson Homogeinizado')
                         plt.xlabel('Fração Volumétrica de Inclusão')
                         plt.ylabel('Coeficiente de Poisson')
-
-                    elif self.estilo == 'normalizar': # caso o estilo seja 'poisson'.
-                        self.normalizar(objH, modelo, Fi) # chama classe que faz o cálculo
-
+                    elif self.estilo == 'normalizar':
+                        self.normalizar(objH, modelo, Fi)
                         plt.title('Normalizado')
                         plt.xlabel('Fração Vol. Inclusão')
                         plt.ylabel('Módulo de Elásticidade : Módulo da Matriz')
 
-            ## esse if plota para o estilo 'fixar_fracao'
+            elif len(objH.matH) == 3:
+                _range = int(objH.fi * 100) if objH.fi * 100 > 0 else 100
+
+                for i in range(0, _range):
+                    Fi = i / 100
+                    if self.estilo == 'fixar_fracao_n':
+                        self.n_fases(objH, modelo, Fi)
+                        plt.title('Módulo E. Homogeinizado vs. FI')
+                        plt.xlabel('Fração Volumétrica de Inclusão')
+                        plt.ylabel('Módulo de Elásticidade Homogeinizado')
+
+                if self.estilo == "fixar_fracao_n":
+                    sns.lineplot(x=self.x, y=self.E, label=label)
+                    sns.despine(left=True)
+                    plt.show()
+                    self.graphs.append((self.x, self.E, label, self.Gh))
+
             if self.estilo=="fixar_fracao":
-                sns.lineplot(x=self.x, y=self.E, label=label, color='black') # plota os valores de x e de E.
-                sns.despine(left=True) # remove grade
-                plt.show() # mostra a plotagem
+                sns.lineplot(x=self.x, y=self.E, label=label, color='black')
+                sns.despine(left=True)
+                plt.show()
 
-                ## guarda o nome do modelo na lista 'nome_modelos' para o relatório
                 self.nome_modelos.append(label)
-                self.graphs.append((self.x, self.E, label, self.Gh)) ## plota o cisalhamento
-
-                #sns.lineplot(x=self.x, y=self.Gh, color='orange', label=label, marker='+')
-                #plt.title("Módulo de Cisalhamento Homogeneizado")
-                #sns.despine(left=True)
-                #plt.show()
+                self.graphs.append((self.x, self.E, label, self.Gh))
 
                 if stats=="True":
                     label_kde = f'Kde: {objH.modH.tipo}'
@@ -110,7 +93,6 @@ class Desenho_Mecanico:
                     plt.legend()
                     plt.show()
 
-            # Se o estilo é poisson
             elif self.estilo=="poisson":
                 sns.lineplot(x=self.x, y=self.vh, label=label)
                 self.graphs.append((self.x, self.vh, label))
@@ -119,7 +101,6 @@ class Desenho_Mecanico:
                 plt.ylim(tresh_hold)
                 plt.show()
 
-                # Quando é pedido stats
                 if stats=="True":
                     label_kde= f'Kde: {objH.modH.tipo}'
                     fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 10))
@@ -130,7 +111,6 @@ class Desenho_Mecanico:
                     plt.legend()
                     plt.show()
 
-            # Se o estilo for "normalizar"
             elif self.estilo == "normalizar":
                 sns.lineplot(x=self.x, y=self.norm, label=label)
                 self.graphs.append((self.x, self.norm, label))
@@ -139,7 +119,6 @@ class Desenho_Mecanico:
                 plt.ylim(tresh_hold)
                 plt.show()
 
-                # Se for pedido stats
                 if stats=="True":
                     label_kde= f'Kde: {objH.modH.tipo}'
                     fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 10))
@@ -150,73 +129,31 @@ class Desenho_Mecanico:
                     plt.legend()
                     plt.show()
 
-            # Rste loop é destinado a plotar modelo de três fases
-            elif len(objH.matH) == 3:
-                _range = int(objH.fi * 100) if objH.fi * 100 > 0 else 100
-
-                for i in range(0, _range):
-                    Fi = i / 100
-
-                    if self.estilo == 'fixar_fracao_3':
-                        self.fixar_fi_nfases(objH, modelo, Fi)
-                        plt.title('Módulo E. Homogeinizado vs. FI')
-                        plt.xlabel('Fração Volumétrica de Inclusão')
-                        plt.ylabel('Módulo de Elásticidade Homogeinizado')
-
-                if self.estilo == "fixar_fracao_3":
-                    sns.lineplot(x=self.x, y=self.E, label=label)
-                    sns.despine(left=True)
-                    plt.show()
-                    self.graphs.append((self.x, self.E, label, self.Gh))
-
-
-    def fixar_fi_nfases(self, objH, modelo, Fi):
-        '''
-            função para plotagem de
-            'n' fases.
-        '''
-
-        fiC, fmC = (Fi, Fi - 1)
-        objH.analH.fi, objH.analH.fr, objH.analH.fm = (fiC, objH.analH.fr, fmC)
-        objH.calc()
-
-        self.E.append(objH.modH.Eh)
-        self.x.append(Fi)
-
-
     def poisson_homo(self, objH, modelo, Fi):
-        '''
-        Função vinculado ao estilo possion, é a função que realiza os cálculos
-        e corrige as frações
-        '''
-
         objH.analH.fi, objH.analH.fm = (Fi, Fi - 1)
         objH.calc()
-        self.vh.append(objH.modH.vh) #criar uma variável flexível
+        self.vh.append(objH.modH.vh)
         self.x.append(Fi)
 
     def fixar_fi(self, objH, modelo, Fi):
-
-        '''
-        Essa função é acionada quando o estilo
-        é o 'fixar_fracao'.
-
-        objH: objeto da classe homog.
-        modelo: modelo usado
-        Fi: valor da fração
-        '''
-
         objH.analH.fi, objH.analH.fm = (Fi, Fi - 1)
         objH.calc()
         self.E.append(objH.modH.Eh)
         self.x.append(Fi)
-        self.Gh.append(objH.modH.Gh) # adicionado recentemente
+        self.Gh.append(objH.modH.Gh)
 
     def normalizar(self, objH, modelo, Fi):
         objH.analH.fi, objH.analH.fm = (Fi, Fi - 1)
         objH.calc()
         normal = (objH.modH.Eh / objH.modH.Em)
-        self.norm.append(normal) #criar variável flexível
+        self.norm.append(normal)
+        self.x.append(Fi)
+
+    def n_fases(self, objH, modelo, Fi):
+        fiC, fmC = (Fi, Fi - 1)
+        objH.analH.fi, objH.analH.fr, objH.analH.fm = (fiC, objH.analH.fr, fmC)
+        objH.calc()
+        self.E.append(objH.modH.Eh)
         self.x.append(Fi)
 
     def juntar_grafs(self, objH, estilo=False, stats=False, tresh_hold=None):
@@ -243,8 +180,7 @@ class Desenho_Mecanico:
                           '+', '|', '.', ',', '1', '2', '3', '4',
                           '<', '>', 'v']
 
-            #x, E, label = graph
-            x, E, label, _ = graph # para adicionar cisalhamento
+            x, E, label, gh = graph
             plt.plot(x, E, label=label,  marker=marcadores[i], markersize=5)
             plt.legend(loc='best')
             sns.despine(left=True)
@@ -252,28 +188,9 @@ class Desenho_Mecanico:
 
         plt.show()
 
-
-        '''
-        Essa loop plotar o cisalhamento
-        Gh, ative apenas quando necessário.
-        
-        Transformar em uma condição no futuro.
-        '''
-        # for graph in self.graphs:
-        #     x, E, label, gh = graph
-        #
-        #     plt.plot(x, gh, label=label, marker=marcadores[i])
-        #     plt.legend(loc='best')
-        #     sns.despine(left=True)
-        #     plt.title("Módulo de Cisalhamento Homogeneizado")
-        #     plt.xlabel('Fração')
-        #     plt.ylabel('Gh')
-
-        #plt.show()
-
         if stats == "True":
             for graph in self.graphs:
-                x, E, label, gh = graph
+                x, E, label = graph
                 sns.kdeplot(x=E, label=label, alpha=.5, fill=True, bw_method=0.1)
                 plt.legend()
                 plt.title("Kernel Density")
@@ -298,29 +215,15 @@ class Desenho_Mecanico:
         df = pd.DataFrame(data, index=names)
         sns.heatmap(data=df, fmt= '.4f', cbar_kws={'orientation':'horizontal'}, annot=True, cmap=custom_color)
         plt.show()
-        plt.show()
 
-        #print(df)
-
-    '''
-        Essa função gera dados
-        para cada modelo, quando chamada
-        abaixo dele.
-    '''
     def create_data(self, objH):
         data = pd.DataFrame({'Modelo':objH.modH.tipo,
                              'K': self.K, 'fi':self.xk})
-
 
         path = "C:\\Users\\PC\\Desktop\MLHOOP 1.0\MLHOOP"
         output = os.path.join(path,  f'{objH.modH.tipo}.csv')
         return data.to_csv(output, index=False, encoding='utf-8')
 
-
-    '''
-    Essa função imprime um relatório
-    com as informações usadas na plotagem
-    '''
     def report(self):
         data_modelos = []
         for modelo in self.nome_modelos:
@@ -328,7 +231,6 @@ class Desenho_Mecanico:
 
         df = pd.DataFrame(data_modelos)
         df.to_csv('data.csv', index=False)
-
 
     def bagg(self):
         mean_eh = []

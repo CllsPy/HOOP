@@ -5,7 +5,7 @@ import seaborn as sns
 
 class Desenho_Mecanico:
     '''
-    Classe para plotar modelos mecânicos ou de condutividade.
+    Classe para plotar modelos mecÃªnicos ou de condutividade.
     '''
 
     COLORS = ['#033E8C', '#0F5FA6', '#8EBF6B', '#CCD96A', '#04B2D9']
@@ -22,7 +22,7 @@ class Desenho_Mecanico:
 
     def draw(self, objH=None, model=None, stats=False, threshold=None):
         '''
-        Método para desenhar os modelos selecionados.
+        Mï¿½todo para desenhar os modelos selecionados.
         '''
         if not self.style:
             self.style = 'fixar_fracao'
@@ -56,10 +56,10 @@ class Desenho_Mecanico:
 
     def join_graphs(self, objH, stats=False, threshold=None):
         '''
-        Junta os gráficos.
+        Junta os grÃ¡ficos.
         '''
-        plt.title('Módulo de Elasticidade Homogeneizado')
-        plt.xlabel('Fração')
+        plt.title('MÃ³dulo de Elasticidade Homogeneizado')
+        plt.xlabel('FraÃ§Ã£oo')
         plt.ylabel('Eh')
 
         for i, (xs, Es) in enumerate(self.graphs):
@@ -89,7 +89,7 @@ class Desenho_Mecanico:
 
     def report(self):
         '''
-        Imprime um relatório com as informações usadas na plotagem.
+        Imprime um relatÃ³rio com as informaÃ§Ãµes usadas na plotagem.
         '''
         data_models = [{'Modelos': f'Modelo {i}'} for i in range(len(self.graphs))]
         df = pd.DataFrame(data_models)
