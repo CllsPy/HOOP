@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="PYTHON_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/analise" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/desenho" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/homogenizacao" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/materiais" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/mecanico" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/micmodelos" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/mix" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/MLHOOP" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/script" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/MLHOOP/files" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/fckmodels" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/desenho/d_condutividade" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/desenho/d_mecanico" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/script/condutividade" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/script/mecanicos" isTestSource="false" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+  <component name="TestRunnerService">
+    <option name="PROJECT_TEST_RUNNER" value="Unittests" />
+  </component>
+</module>
