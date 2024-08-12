@@ -1,4 +1,6 @@
 [![Release](https://img.shields.io/badge/release-v1.0.0-orange)](link_do_release)
+[![Website](https://img.shields.io/badge/website-online-brightgreen)](link_do_seu_site)
+
 
 # Etapa-01
 
