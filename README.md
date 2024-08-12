@@ -13,3 +13,10 @@ Construir um software baseado no _framework_ proposto por Silva (2022) que permi
 ## License
 
 This project is licensed under the MIT License.
+
+
+<p align="center">
+  <span style="background-color: #FFA500; color: white; padding: 5px 10px; border-radius: 5px; font-size: 16px;">
+    1.0.0
+  </span>
+</p>
