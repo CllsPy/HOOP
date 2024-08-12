@@ -1,3 +1,5 @@
+[![Release](https://img.shields.io/badge/release-v1.0.0-orange)](link_do_release)
+
 # Etapa-01
 
 ## Objetivo
