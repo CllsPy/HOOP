@@ -12,7 +12,7 @@ Construir um software baseado no _framework_ proposto por Silva (2022) que permi
 - Quantidade de modelos
 - Estatística dos modelos (e.g Distribuição)
 
-![image](image.png)
+![image](https://github.com/CllsPy/HOOP/blob/main/files/image.png)
 
 ## License
 
