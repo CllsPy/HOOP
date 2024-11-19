@@ -14,7 +14,7 @@ class DesenhoMecanico:
 
         sns.set_palette('Paired')
         sns.set_style("whitegrid")
-        plt.rcParams['font.size'] = 14
+        plt.rcParams['font.size'] = 5
         plt.rcParams['figure.figsize'] = (8, 4)
 
     def desenha(self, objH=None, modelo=None, stats=None, tresh_hold=None):
