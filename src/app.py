@@ -1,4 +1,6 @@
+import matplotlib.pyplot as plt
 import streamlit as st
+
 from homogenizacao.homogenizacao import Homogenizacao
 from mecanico.mecanico import Mecanico
 from desenho.desenho_mec import DesenhoMecanico
@@ -8,101 +10,44 @@ from micmodelos.dilute import DiluteSuspension
 from micmodelos.moritanaka import MoriTanaka
 from micmodelos.selfconsistent import SelfConsistent
 from micmodelos.gsc import GSC
-from PIL import Image
-import matplotlib.pyplot as plt
 
 
-st.set_page_config(
-    page_title='HOOP: A Python Framework For Composites Analysis',
-    layout='wide',
-)
+h1 = Homogenizacao()
+d = DesenhoMecanico(estilo='normalizar')
 
-with st.sidebar.container(border=True):
-    st.subheader('1. Definir Problema')
+h1.tipo = "global"
+h1.analise_tipo = "mecanica"
+h1.geo = "esfera"
 
-    estilo = st.selectbox(
-        'Selecione o estilo', ['normalizar','poisson', 'fixar_fracao']
-        )
+h1.Em = 41000
+h1.vm = 0.2
 
+h1.vi = 0.2
+h1.Ei = 0.1
 
-    tipo = st.selectbox(
-        'Selecione o tipo de análise', ['mecanica', 'condutividade']
-        )
+h1.set_analise()
 
-    geo = st.selectbox(
-        'Selecione a geometria', ['esfera']
-        )
+m1 = Mecanico()
+m1.E = h1.Em
+m1.v = h1.vm
+m1.geo = h1.analH.geo
 
-st.subheader('Etapa 2: Parâmetros')
-import streamlit as st
-
-with st.form('feedback_form'):
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        em = st.number_input('Em')
-        ei = st.number_input('Ei')
-
-    with col2:    
-        vm = st.number_input('Vm')
-        vi = st.number_input('Vi')
-    
+m2 = Mecanico()
+m2.E = h1.Ei
+m2.v = h1.vi
+m2.geo = h1.analH.geo
 
 
-    models = st.multiselect(
-    'Selecione os modelos', ['GSC', 'MoriTanaka', 'DiluteSuspension']
-    )
+h1.matH.append(m1)
+h1.matH.append(m2)
 
-    try: 
-        submit = st.form_submit_button('Computer')
+h1.calc()
 
-        h1 = Homogenizacao()
-        d = DesenhoMecanico(estilo=estilo)
+MODELS = [GSC(), SelfConsistent(), MoriTanaka(), DiluteSuspension(), Voigt(), Reuss()]
 
-        h1.tipo = "global"
-        h1.analise_tipo = tipo
-        h1.geo = geo
+st.title("Title")
 
-        h1.Em = em
-        h1.vm = vm
+for model in MODELS:
+    st.pyplot(d.desenha(h1, modelo=model))
 
-        h1.vi = vi
-        h1.Ei = ei
-
-        h1.set_analise()
-
-        m1 = Mecanico()
-        m1.E = h1.Em
-        m1.v = h1.vm
-        m1.geo = h1.analH.geo
-
-        m2 = Mecanico()
-        m2.E = h1.Ei
-        m2.v = h1.vi
-        m2.geo = h1.analH.geo
-
-        h1.matH.append(m1)
-        h1.matH.append(m2)
-
-        
-        for value in models:
-            if value == 'GSC':
-                gsc = GSC()
-            
-                fig, ax = plt.subplots()
-                d.desenha(h1, gsc)
-
-                with st.expander("Resposta"):
-                    st.pyplot(fig)
-    
-    except:
-        'Por Favor, Insira Dados Válidos!'
-
-
-
-
-#b = d.desenha(h1, modelo=SelfConsistent())
-#c = d.desenha(h1, modelo=MoriTanaka())
-#d = d.desenha(h1, modelo=DiluteSuspension())
-#st.pyplot(a)
+st.pyplot(d.juntar_grafs(h1))

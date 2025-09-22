@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import streamlit as st
 
 
 
@@ -111,7 +112,7 @@ class DesenhoMecanico:
                 plt.legend()
                 sns.despine(left=True)
                 plt.ylim(tresh_hold)
-                plt.show()
+                #plt.show()
 
                 if stats=="True":
                     label_kde= f'Kde: {objH.modH.tipo}'
@@ -180,7 +181,7 @@ class DesenhoMecanico:
             sns.despine(left=True)
             plt.ylim(tresh_hold)
 
-        plt.show()
+        #st.pyplot.show()
 
         if stats == "True":
             for graph in self.graphs:
