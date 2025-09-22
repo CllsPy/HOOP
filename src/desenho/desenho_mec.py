@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+import streamlit as st
 
 
 class DesenhoMecanico:
@@ -25,103 +25,114 @@ class DesenhoMecanico:
             objH.modH = modelo
             label = f'{objH.modH.tipo}'
 
-            self.E = []
-            self.x = []
-            self.vh = []
-            self.norm = []
-            #self.Gh = []
+            self.E, self.x, self.vh, self.norm = [], [], [], []
 
             if len(objH.matH) == 2:
                 _range = int(objH.fi * 100) if (objH.fi * 100) > 0 else 100
 
-                for i in range(0, _range):
+                for i in range(_range):
                     Fi = i / 100
                     if self.estilo == 'fixar_fracao':
                         self.fixar_fi(objH, modelo, Fi)
-                        plt.title('Módulo de Elasticidade Homogeneizado')
-                        plt.xlabel('Fração')
-                        plt.ylabel('Eh')
+                        titulo, xlabel, ylabel = (
+                            'Módulo de Elasticidade Homogeneizado',
+                            'Fração',
+                            'Eh'
+                        )
                     elif self.estilo == 'poisson':
                         self.poisson_homo(objH, modelo, Fi)
-                        plt.title('Poisson Homogeinizado')
-                        plt.xlabel('Fração Volumétrica de Inclusão')
-                        plt.ylabel('Coeficiente de Poisson')
+                        titulo, xlabel, ylabel = (
+                            'Poisson Homogeinizado',
+                            'Fração Volumétrica de Inclusão',
+                            'Coeficiente de Poisson'
+                        )
                     elif self.estilo == 'normalizar':
                         self.normalizar(objH, modelo, Fi)
-                        plt.title('Normalizado')
-                        plt.xlabel('Fração Vol. Inclusão')
-                        plt.ylabel('Módulo de Elásticidade : Módulo da Matriz')
+                        titulo, xlabel, ylabel = (
+                            'Normalizado',
+                            'Fração Vol. Inclusão',
+                            'Módulo de Elásticidade : Módulo da Matriz'
+                        )
 
             elif len(objH.matH) == 3:
                 _range = int(objH.fi * 100) if objH.fi * 100 > 0 else 100
-
-                for i in range(0, _range):
+                for i in range(_range):
                     Fi = i / 100
                     if self.estilo == 'fixar_fracao_n':
                         self.n_fases(objH, modelo, Fi)
-                        plt.title('Módulo E. Homogeinizado vs. FI')
-                        plt.xlabel('Fração Volumétrica de Inclusão')
-                        plt.ylabel('Módulo de Elásticidade Homogeinizado')
-
+                        titulo, xlabel, ylabel = (
+                            'Módulo E. Homogeinizado vs. FI',
+                            'Fração Volumétrica de Inclusão',
+                            'Módulo de Elásticidade Homogeinizado'
+                        )
                 if self.estilo == "fixar_fracao_n":
-                    sns.lineplot(x=self.x, y=self.E, label=label)
+                    fig, ax = plt.subplots()
+                    sns.lineplot(x=self.x, y=self.E, label=label, ax=ax)
                     sns.despine(left=True)
-                    plt.show()
-                    self.graphs.append((self.x, self.E, label, self.Gh))
+                    st.pyplot(fig)
+                    self.graphs.append((self.x, self.E, label))
 
-            if self.estilo=="fixar_fracao":
-                sns.lineplot(x=self.x, y=self.E, label=label, color='black')
+            if self.estilo == "fixar_fracao":
+                fig, ax = plt.subplots()
+                sns.lineplot(x=self.x, y=self.E, label=label, color='black', ax=ax)
                 sns.despine(left=True)
-                plt.show()
+                st.pyplot(fig)
 
                 self.nome_modelos.append(label)
                 self.graphs.append((self.x, self.E, label))
 
-                if stats=="True":
+                if stats == "True":
                     label_kde = f'Kde: {objH.modH.tipo}'
-                    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 10))
+                    fig, axes = plt.subplots(1, 2, figsize=(10, 10))
                     sns.scatterplot(x=self.x, y=self.E, ax=axes[0], label=label)
-                    sns.kdeplot(self.E, ax=axes[1], fill='True', label=label_kde, color='orange')
+                    sns.kdeplot(self.E, ax=axes[1], fill=True,
+                                label=label_kde, color='orange')
                     plt.tight_layout(pad=1.08)
                     sns.despine(left=True)
-                    plt.legend()
-                    plt.show()
+                    axes[1].legend()
+                    st.pyplot(fig)
 
-            elif self.estilo=="poisson":
-                sns.lineplot(x=self.x, y=self.vh, label=label)
+            elif self.estilo == "poisson":
+                fig, ax = plt.subplots()
+                sns.lineplot(x=self.x, y=self.vh, label=label, ax=ax)
                 self.graphs.append((self.x, self.vh, label))
-                plt.legend()
+                ax.legend()
                 sns.despine(left=True)
-                plt.ylim(tresh_hold)
-                plt.show()
+                if tresh_hold:
+                    ax.set_ylim(tresh_hold)
+                st.pyplot(fig)
 
-                if stats=="True":
-                    label_kde= f'Kde: {objH.modH.tipo}'
-                    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 10))
+                if stats == "True":
+                    label_kde = f'Kde: {objH.modH.tipo}'
+                    fig, axes = plt.subplots(1, 2, figsize=(10, 10))
                     sns.scatterplot(x=self.x, y=self.vh, ax=axes[0], label=label)
-                    sns.kdeplot(self.vh, ax=axes[1], fill='True', label=label_kde, color='orange')
+                    sns.kdeplot(self.vh, ax=axes[1], fill=True,
+                                label=label_kde, color='orange')
                     plt.tight_layout(pad=1.08)
                     sns.despine(left=True)
-                    plt.legend()
-                    plt.show()
+                    axes[1].legend()
+                    st.pyplot(fig)
 
             elif self.estilo == "normalizar":
-                sns.lineplot(x=self.x, y=self.norm, label=label)
+                fig, ax = plt.subplots()
+                sns.lineplot(x=self.x, y=self.norm, label=label, ax=ax)
                 self.graphs.append((self.x, self.norm, label))
-                plt.legend()
+                ax.legend()
                 sns.despine(left=True)
-                plt.ylim(tresh_hold)
-                plt.show()
+                if tresh_hold:
+                    ax.set_ylim(tresh_hold)
+                st.pyplot(fig)
 
-                if stats=="True":
-                    label_kde= f'Kde: {objH.modH.tipo}'
-                    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 10))
+                if stats == "True":
+                    label_kde = f'Kde: {objH.modH.tipo}'
+                    fig, axes = plt.subplots(1, 2, figsize=(10, 10))
                     sns.scatterplot(x=self.x, y=self.norm, ax=axes[0], label=label)
-                    sns.kdeplot(self.norm, ax=axes[1], fill='True', label=label_kde, color='orange')
+                    sns.kdeplot(self.norm, ax=axes[1], fill=True,
+                                label=label_kde, color='orange')
                     plt.tight_layout(pad=1.08)
                     sns.despine(left=True)
-                    plt.legend()
-                    plt.show()
+                    axes[1].legend()
+                    st.pyplot(fig)
 
     def poisson_homo(self, objH, modelo, Fi):
         objH.analH.fi, objH.analH.fm = (Fi, Fi - 1)
@@ -134,7 +145,6 @@ class DesenhoMecanico:
         objH.calc()
         self.E.append(objH.modH.Eh)
         self.x.append(Fi)
-        #self.Gh.append(objH.modH.Gh)
 
     def normalizar(self, objH, modelo, Fi):
         objH.analH.fi, objH.analH.fm = (Fi, Fi - 1)
@@ -152,85 +162,61 @@ class DesenhoMecanico:
 
     def juntar_grafs(self, objH, estilo=False, stats=False, tresh_hold=None):
         if self.estilo == 'poisson':
-            plt.title('Coeficiente de Poisson Homogeneizado')
-            plt.xlabel('Fração Volumétrica de Inclusão')
-            plt.ylabel('Coeficiente de Poisson Homogeneizado')
-
+            titulo, xlabel, ylabel = (
+                'Coeficiente de Poisson Homogeneizado',
+                'Fração Volumétrica de Inclusão',
+                'Coeficiente de Poisson Homogeneizado'
+            )
         elif self.estilo == 'normalizar':
-            plt.title('Models')
-            plt.xlabel('fi')
-            plt.ylabel('Eh/Em')
-
+            titulo, xlabel, ylabel = ('Models', 'fi', 'Eh/Em')
         else:
-            plt.title('Models')
-            plt.xlabel('fi')
-            plt.ylabel('Eh')
+            titulo, xlabel, ylabel = ('Models', 'fi', 'Eh')
 
-        i = 0
-        for graph in self.graphs:
+        fig, ax = plt.subplots()
+        ax.set_title(titulo)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
 
-            i += 1
-            marcadores = ['o', 's', '^', '*', 'x', 'D', 'p', 'h',
-                          '+', '|', '.', ',', '1', '2', '3', '4',
-                          '<', '>', 'v']
+        marcadores = ['o', 's', '^', '*', 'x', 'D', 'p', 'h',
+                      '+', '|', '.', ',', '1', '2', '3', '4',
+                      '<', '>', 'v']
 
+        for i, graph in enumerate(self.graphs):
             x, E, label = graph
-            plt.plot(x, E, label=label,  marker=marcadores[i], markersize=5)
-            plt.legend(loc='best')
-            sns.despine(left=True)
-            plt.ylim(tresh_hold)
+            ax.plot(x, E, label=label,
+                    marker=marcadores[i % len(marcadores)], markersize=5)
 
-        plt.show()
+        ax.legend(loc='best')
+        sns.despine(left=True)
+        if tresh_hold:
+            ax.set_ylim(tresh_hold)
+        st.pyplot(fig)
 
         if stats == "True":
+            fig, ax = plt.subplots()
             for graph in self.graphs:
                 x, E, label = graph
-                sns.kdeplot(x=E, label=label, alpha=.5, fill=True, bw_method=0.1)
-                plt.legend()
-                plt.title("Kernel Density")
-                sns.despine(left=True)
-            plt.show()
-
+                sns.kdeplot(x=E, label=label, alpha=.5,
+                            fill=True, bw_method=0.1, ax=ax)
+            ax.legend()
+            ax.set_title("Kernel Density")
+            sns.despine(left=True)
+            st.pyplot(fig)
 
     def hist(self, objH, modelos: list):
-        kde_values = []
-        names = []
+        kde_values, names = [], []
         for modelo in modelos:
             objH.modH = modelo
             objH.calc()
-            value = float(objH.modH.Eh)
-            kde_values.append(value)
-            name = objH.modH.tipo
-            names.append(name)
+            kde_values.append(float(objH.modH.Eh))
+            names.append(objH.modH.tipo)
 
-        custom_color = ['#033E8C', '#0F5FA6', '#8EBF6B', '#CCD96A', '#04B2D9']
+        custom_color = ['#033E8C', '#0F5FA6', '#8EBF6B',
+                        '#CCD96A', '#04B2D9']
         data = {'Modelos': kde_values}
         df = pd.DataFrame(data, index=names)
-        sns.heatmap(data=df, fmt= '.4f', cbar_kws={'orientation':'horizontal'}, annot=True, cmap=custom_color)
-        plt.show()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        fig, ax = plt.subplots()
+        sns.heatmap(data=df, fmt='.4f', cbar_kws={'orientation': 'horizontal'},
+                    annot=True, cmap=custom_color, ax=ax)
+        st.pyplot(fig)
