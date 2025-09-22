@@ -1,14 +1,13 @@
 from homogenizacao.homogenizacao import Homogenizacao
 from mecanico.mecanico import Mecanico
 from desenho.desenho_mec import DesenhoMecanico
-
 from micmodelos.voigt import Voigt
 from micmodelos.reuss import Reuss
 from micmodelos.dilute import DiluteSuspension
 from micmodelos.moritanaka import MoriTanaka
 from micmodelos.selfconsistent import SelfConsistent
 from micmodelos.gsc import GSC
-
+import matplotlib.pyplot as plt
 import streamlit as st
 
 h1 = Homogenizacao()
@@ -42,7 +41,7 @@ h1.matH.append(m2)
 
 h1.calc()
 
-import matplotlib.pyplot as plt
+
 
 d.desenha(h1, modelo=GSC())
 d.desenha(h1, modelo=SelfConsistent())

@@ -1,6 +1,4 @@
-import matplotlib.pyplot as plt
 import streamlit as st
-
 from homogenizacao.homogenizacao import Homogenizacao
 from mecanico.mecanico import Mecanico
 from desenho.desenho_mec import DesenhoMecanico
@@ -10,7 +8,8 @@ from micmodelos.dilute import DiluteSuspension
 from micmodelos.moritanaka import MoriTanaka
 from micmodelos.selfconsistent import SelfConsistent
 from micmodelos.gsc import GSC
-
+from PIL import Image
+import matplotlib.pyplot as plt
 
 h1 = Homogenizacao()
 d = DesenhoMecanico(estilo='normalizar')
@@ -40,14 +39,31 @@ m2.geo = h1.analH.geo
 
 h1.matH.append(m1)
 h1.matH.append(m2)
+import streamlit as st
 
-h1.calc()
+# lista de modelos disponíveis
+MODELS = [GSC(), SelfConsistent(), MoriTanaka(), DiluteSuspension(), Reuss(), Voigt()]
+NOMES = [m.tipo for m in MODELS]  # cada modelo precisa ter atributo .tipo
 
-MODELS = [GSC(), SelfConsistent(), MoriTanaka(), DiluteSuspension(), Voigt(), Reuss()]
+# seleção no sidebar
+selecionados = st.multiselect("Escolha os modelos", NOMES, default=NOMES[:1])
 
-st.title("Title")
+# calcula número de colunas do grid
+cols = 2  # ajuste para 2, 3 ou mais colunas
+linhas = (len(selecionados) + cols - 1) // cols
 
-for model in MODELS:
-    st.pyplot(d.desenha(h1, modelo=model))
+# organiza plots em grid
+idx = 0
+for _ in range(linhas):
+    col_objs = st.columns(cols)
+    for col in col_objs:
+        if idx < len(selecionados):
+            nome = selecionados[idx]
+            modelo = next(m for m in MODELS if m.tipo == nome)
+            with col:
+                d.desenha(h1, modelo=modelo)
+            idx += 1
 
-st.pyplot(d.juntar_grafs(h1))
+# gráfico agregado
+st.markdown("### Comparação de todos os modelos selecionados")
+d.juntar_grafs(h1, selecionados)
