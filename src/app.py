@@ -41,10 +41,30 @@ h1.matH.append(m2)
 
 h1.calc()
 
+import streamlit as st
 
+# lista de modelos disponíveis
+MODELS = [GSC(), SelfConsistent(), MoriTanaka(), DiluteSuspension(), Reuss(), Voigt()]
+NOMES = [m.tipo for m in MODELS]  # cada modelo precisa ter atributo .tipo
 
-d.desenha(h1, modelo=GSC())
-d.desenha(h1, modelo=SelfConsistent())
-d.desenha(h1, modelo=MoriTanaka())
-d.desenha(h1, modelo=DiluteSuspension())
-d.juntar_grafs(h1)
+# seleção no sidebar
+selecionados = st.multiselect("Escolha os modelos", NOMES, default=NOMES[:1])
+
+# calcula número de colunas do grid
+cols = 2  # ajuste para 2, 3 ou mais colunas
+linhas = (len(selecionados) + cols - 1) // cols
+
+# organiza plots em grid
+idx = 0
+for _ in range(linhas):
+    col_objs = st.columns(cols)
+    for col in col_objs:
+        if idx < len(selecionados):
+            nome = selecionados[idx]
+            modelo = next(m for m in MODELS if m.tipo == nome)
+            with col:
+                d.desenha(h1, modelo=modelo)
+            idx += 1
+
+# gráfico agregado
+d.juntar_grafs(h1, selecionados)
