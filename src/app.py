@@ -78,7 +78,7 @@ with st.sidebar:
     
     analise_tipo = st.selectbox(
         "Tipo de análise",
-        ["mecanica", "termica", "eletrica"],
+        ["mecanica", "termica", "eletrica", "condutividade"],
         help="Selecione o tipo de propriedade a ser homogeneizada"
     )
     

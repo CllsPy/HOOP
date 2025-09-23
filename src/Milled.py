@@ -41,8 +41,6 @@ h1.matH.append(m2)
 
 h1.calc()
 
-
-
 d.desenha(h1, modelo=GSC())
 d.desenha(h1, modelo=SelfConsistent())
 d.desenha(h1, modelo=MoriTanaka())
