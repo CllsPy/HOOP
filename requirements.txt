@@ -1,0 +1,7 @@
+matplotlib
+numpy
+pandas
+scipy
+pytest
+seaborn
+setuptools
