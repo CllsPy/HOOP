@@ -35,14 +35,29 @@ class DesenhoMecanico:
                     xs.append(x)
                     ys.append(y)
 
+                self.nome_modelos.append(label)
+                self.graphs.append((xs, ys, label))
+
+                plt.figure()
                 estilo_obj.configurar_eixos(plt.gca())
                 sns.lineplot(x=xs, y=ys, label=label, color='black')
                 sns.despine(left=True)
                 if tresh_hold:
                     plt.ylim(tresh_hold)
-
-                self.nome_modelos.append(label)
-                self.graphs.append((xs, ys, label))
+                if self.estilo == 'poisson':
+                    plt.title(f'Coeficiente de Poisson - {label}')
+                    plt.xlabel('Fração Volumétrica de Inclusão')
+                    plt.ylabel('Coeficiente de Poisson Homogeneizado')
+                elif self.estilo == 'normalizar':
+                    plt.title(f'Model: {label}')
+                    plt.xlabel('fi')
+                    plt.ylabel('Eh/Em')
+                else:
+                    plt.title(f'Model: {label}')
+                    plt.xlabel('fi')
+                    plt.ylabel('Eh')
+                plt.legend()
+                plt.show()
 
                 if stats == "True":
                     label_kde = f'Kde: {objH.modH.tipo}'
@@ -79,6 +94,7 @@ class DesenhoMecanico:
         self.x.append(Fi)
 
     def juntar_grafs(self, objH, estilo=False, stats=False, tresh_hold=None):
+        plt.figure()
         if self.estilo == 'poisson':
             plt.title('Coeficiente de Poisson Homogeneizado')
             plt.xlabel('Fração Volumétrica de Inclusão')

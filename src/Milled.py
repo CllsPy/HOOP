@@ -9,6 +9,8 @@ from micmodelos.moritanaka import MoriTanaka
 from micmodelos.selfconsistent import SelfConsistent
 from micmodelos.gsc import GSC
 
+import streamlit as st
+
 h1 = Homogenizacao()
 d = DesenhoMecanico(estilo='normalizar')
 
