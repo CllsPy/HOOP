@@ -4,7 +4,7 @@ from micmodelos.micmodelos import Micmodelos
 class Popovic(Micmodelos):
     def __init__(self):
         super().__init__()
-        self.modelo = 'popovic'
+        self.tipo = 'popovic'
         # Propriedades Mecânicas
         self.C = None  # tensor constitutivo homogeneizado
         self.Ci = None  # tensor constitutivo da inclusão
@@ -50,21 +50,19 @@ class Popovic(Micmodelos):
             C = (1 / 2) * (R + V)
 
             self.Eh = (-2 * C[0, 1] ** 2 + C[0, 1] * C[0, 0] + C[0, 0] ** 2) / (C[0, 1] + C[0, 0])
-            objH.modH.vh = C[0, 1] / (C[0, 1] + C[0, 0])
+            self.vh = C[0, 1] / (C[0, 1] + C[0, 0])
 
-            kh = objH.modH.Eh / (3 * (1 - 2 * objH.modH.vh))
-            Gh = objH.modH.Eh / (2 * (1 + objH.modH.vh))
-            objH.modH.kh = kh
-            objH.modH.Gh = Gh
+            self.kh = self.Eh / (3 * (1 - 2 * self.vh))
+            self.Gh = self.Eh / (2 * (1 + self.vh))
 
-            objH.modH.C = C
-            objH.modH.Ci = Ci
-            objH.modH.Cm = Cm
-            objH.modH.fi = fi
-            objH.modH.Em = Em
-            objH.modH.vm = vm
-            objH.modH.Ei = Ei
-            objH.modH.vi = vi
+            self.C = C
+            self.Ci = Ci
+            self.Cm = Cm
+            self.fi = fi
+            self.Em = Em
+            self.vm = vm
+            self.Ei = Ei
+            self.vi = vi
 
         elif objH.analH.analise_type == 'condutividade':
             fi = objH.analH.fi
