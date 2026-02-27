@@ -1,6 +1,7 @@
 from homogenizacao.homogenizacao import Homogenizacao
 from mecanico.mecanico import Mecanico
 from desenho.desenho_mec import DesenhoMecanico
+from relatorio.relatorio import gerar_relatorio
 
 from micmodelos.voigt import Voigt
 from micmodelos.reuss import Reuss
@@ -12,7 +13,7 @@ from micmodelos.gsc import GSC
 import streamlit as st
 
 h1 = Homogenizacao()
-d = DesenhoMecanico(estilo='normalizar')
+d = DesenhoMecanico(estilo='')
 
 h1.tipo = "global"
 h1.analise_tipo = "mecanica"
@@ -47,3 +48,5 @@ d.desenha(h1, modelo=SelfConsistent())
 d.desenha(h1, modelo=MoriTanaka())
 d.desenha(h1, modelo=DiluteSuspension())
 d.juntar_grafs(h1)
+
+gerar_relatorio(h1, d, filename='relatorio.pdf')
