@@ -401,8 +401,6 @@ Contributions are welcome. Please open an issue first to discuss what you'd like
 - Eshelby, J. D. (1957). The determination of the elastic field of an ellipsoidal inclusion. *Proc. R. Soc. London A*, 241, 376–396.
 - Christensen, R. M. & Lo, K. H. (1979). Solutions for effective shear properties in three phase sphere and cylinder models. *J. Mech. Phys. Solids*, 27(4), 315–330.
 
----
 
 ## License
-
 This project is licensed under the [MIT License](LICENSE).
