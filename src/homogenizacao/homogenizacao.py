@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 class Homogenizacao (object):
     def __init__(self):
-        self.analH = Analise
+        self.analH = Analise('mecanica', 'esfera', 0, 0, None)
         self.modH = Micmodelos
         self.matH = []
         self.tipo = None
@@ -22,22 +22,14 @@ class Homogenizacao (object):
         elif self.tipo == 'local':
             pass
 
-    def calcB(self):  # <------- FUNCIONANDO =======================
-        if len(self.matH) == 2:
-            self.matH[0].fk = 1 - self.analH.fi
-            self.matH[1].fk = self.analH.fi
-            self.analH.fm = 1 - self.analH.fi
+    def calcB(self):
+        from homogenizacao.calculadora_fracoes import CalculadoraFracoes
+        CalculadoraFracoes.distribuir(self.analH, self.matH)
 
-        elif len(self.matH) == 3:  # <------- FALTA TESTAR =======================
-            self.matH[0].fk = self.analH.fm
-            self.matH[1].fk = self.analH.fi
-            self.matH[2].fk = 1 - self.analH.fi - self.analH.fm
-            self.analH.fr = 1 - self.analH.fi - self.analH.fm
-
-        for i in range(len(self.matH)):  # <------- FALTA TESTAR =======================
-            self.matH[i].id = i
-            self.matH[i].geo = self.analH.geo
-            self.matH[i].calc()
+        for i, mat in enumerate(self.matH):
+            mat.id = i
+            mat.geo = self.analH.geo
+            mat.calc()
 
         self.modH.calc(self)
 

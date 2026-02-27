@@ -1,4 +1,4 @@
-from materiais.materiaisnumpy import Materiais
+from materiais.materiais import Materiais
 import numpy as np
 
 

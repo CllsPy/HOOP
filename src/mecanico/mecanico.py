@@ -71,46 +71,11 @@ class Mecanico (Materiais):
         [0,0,0,0,0,n/G]])
 
     def montaS(self, E, v):
-        if self.geo == 'esfera':
-            P = self.montaP(E,v)
-            L = self.montaL(E,v)
-            S = np.dot(P, L)
-            return S
-
-        elif self.geo == 'cilindro': #<------- FALTA TESTAR =======================
-            S = np.zeros((6, 6))
-            k = 0.03 / 100
-            v = self.v
-            S[0, 0] = ((2.0 - v) / (1.0 - v)) * (k ** 2) * (math.log(2.0 / k) - ((5.0 - 2.0 * v) / (4.0 - 2.0 * v)))
-            S[0, 1] = -((1.0 - 2.0 * v) / (2.0 - 2.0 * v)) * (k ** 2) * (
-                        math.log(2.0 / k) - ((3.0 - 4.0 * v) / (2.0 - 4.0 * v)))
-            S[0, 2] = S[0, 1]
-            S[1, 0] = ((v) / (2.0 - 2.0 * v)) - ((1.0 + v) / (2.0 - 2.0 * v)) * (k ** 2) * (
-                        math.log(2.0 / k) - ((3.0 + 2.0 * v) / (2.0 + 2.0 * v)))
-            S[1, 1] = ((5.0 - 4.0 * v) / (8.0 - 8.0 * v)) - ((1.0 - 2.0 * v) / (4.0 - 4.0 * v)) * (k ** 2) * (
-                        math.log(2.0 / k) - ((1.0 - 8.0 * v) / (4.0 - 8.0 * v)))
-            S[1, 2] = -((1.0 - 4.0 * v) / (8.0 - 8.0 * v)) - ((1.0 - 2.0 * v) / (4.0 - 4.0 * v)) * (k ** 2) * (
-                        math.log(2.0 / k) - ((5.0 - 8.0 * v) / (4.0 - 8.0 * v)))
-            S[2, 0] = S[1, 0]
-            S[2, 1] = S[1, 2]
-            S[2, 2] = S[1, 1]
-            S[3, 3] = (3.0 - 4.0 * v) / (2 * (4.0 - 4.0 * v))
-            S[4, 4] = 1.0 / 4.0
-            S[5, 5] = 1.0 / 4.0
-            return S
-
-        elif self.geo == 'disco': #<------- FALTA TESTAR =======================
-            S = np.zeros((6, 6))
-            E = self.E
-            v = self.v
-            c0 = E * (1 - v) / (1 - v - 2 * v * v)
-            c1 = E * v / (1 - v - 2 * v * v)
-
-            S[2, 0] = c1 / c0
-            S[3, 3] = 0.5
-            S[2, 1] = c1 / c0
-            S[4, 4] = 0.5
-            S[2, 2] = 1.0
+        from mecanico.geometria_registry import GeometriaRegistry
+        L = self.montaL(E, v)
+        P = self.montaP(E, v)
+        geometria = GeometriaRegistry.obter(self.geo)
+        return geometria.calcular_S(E, v, P, L)
 
     def montaL(self, E, v):  # <------- FUNCIONANDO =======================
         c = E / ((1 + v) * (1 - 2 * v))
@@ -141,47 +106,10 @@ class Mecanico (Materiais):
                            [0, 0, 0, 0, 0, n / G]])
         return self.P
 
-    def tensorS(self): #<------- FUNCIONANDO =======================
-        if self.geo == 'esfera':
-            self.S = np.dot(self.P, self.L)
-            return self.S
-        elif self.geo == 'cilindro': #<------- FALTA TESTAR =======================
-            S = np.zeros((6, 6))
-            k = 0.03 / 100
-            v = self.v
-            S[0, 0] = ((2.0 - v) / (1.0 - v)) * (k ** 2) * (math.log(2.0 / k) - ((5.0 - 2.0 * v) / (4.0 - 2.0 * v)))
-            S[0, 1] = -((1.0 - 2.0 * v) / (2.0 - 2.0 * v)) * (k ** 2) * (
-                        math.log(2.0 / k) - ((3.0 - 4.0 * v) / (2.0 - 4.0 * v)))
-            S[0, 2] = S[0, 1]
-            S[1, 0] = ((v) / (2.0 - 2.0 * v)) - ((1.0 + v) / (2.0 - 2.0 * v)) * (k ** 2) * (
-                        math.log(2.0 / k) - ((3.0 + 2.0 * v) / (2.0 + 2.0 * v)))
-            S[1, 1] = ((5.0 - 4.0 * v) / (8.0 - 8.0 * v)) - ((1.0 - 2.0 * v) / (4.0 - 4.0 * v)) * (k ** 2) * (
-                        math.log(2.0 / k) - ((1.0 - 8.0 * v) / (4.0 - 8.0 * v)))
-            S[1, 2] = -((1.0 - 4.0 * v) / (8.0 - 8.0 * v)) - ((1.0 - 2.0 * v) / (4.0 - 4.0 * v)) * (k ** 2) * (
-                        math.log(2.0 / k) - ((5.0 - 8.0 * v) / (4.0 - 8.0 * v)))
-            S[2, 0] = S[1, 0]
-            S[2, 1] = S[1, 2]
-            S[2, 2] = S[1, 1]
-            S[3, 3] = (3.0 - 4.0 * v) / (2 * (4.0 - 4.0 * v))
-            S[4, 4] = 1.0 / 4.0
-            S[5, 5] = 1.0 / 4.0
-
-            #self.S = S
-            #return S
-
-        elif self.geo == 'disco': #<------- FALTA TESTAR =======================
-            S = np.zeros((6, 6))
-            E = self.E
-            v = self.v
-            c0 = E * (1 - v) / (1 - v - 2 * v * v)
-            c1 = E * v / (1 - v - 2 * v * v)
-
-            S[2, 0] = c1 / c0
-            S[3, 3] = 0.5
-            S[2, 1] = c1 / c0
-            S[4, 4] = 0.5
-            S[2, 2] = 1.0
-
-            #self.S = S # SE QUISER RETORNO
+    def tensorS(self):
+        from mecanico.geometria_registry import GeometriaRegistry
+        geometria = GeometriaRegistry.obter(self.geo)
+        self.S = geometria.calcular_S(self.E, self.v, self.P, self.L)
+        return self.S
 
 
