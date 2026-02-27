@@ -3,13 +3,13 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Streamlit](https://img.shields.io/badge/UI-Streamlit-red)](https://streamlit.io)
 
-# HOOP — Homogenization of cOmposite Properties
+# HOOP 
 
 > A Python framework for micromechanical homogenization of composite materials, based on the framework proposed by Silva (2022).
 
 HOOP computes effective mechanical (elastic) and thermal (conductivity) properties of composite materials using classical micromechanical models. It provides both a programmatic API and an interactive Streamlit web interface.
 
----
+
 
 ## Table of Contents
 
@@ -28,7 +28,7 @@ HOOP computes effective mechanical (elastic) and thermal (conductivity) properti
 - [Contributing](#contributing)
 - [License](#license)
 
----
+
 
 ## Overview
 
@@ -42,7 +42,7 @@ Homogenizacao → Micmodelos → DesenhoMecanico
 
 A `Homogenizacao` object holds the material phases (`Mecanico` or `Condutividade` instances), the analysis configuration (`Analise`), and delegates computation to the chosen micromechanical model. Results are visualized via `DesenhoMecanico` and can be exported to PDF via `gerar_relatorio`.
 
----
+
 
 ## Features
 
@@ -54,7 +54,7 @@ A `Homogenizacao` object holds the material phases (`Mecanico` or `Condutividade
 - **Streamlit web interface** with dark theme and interactive model selection
 - **Extensible design**: add new models and plot styles without modifying existing code
 
----
+
 
 ## Installation
 
@@ -68,7 +68,7 @@ pip install -r requirements.txt
 
 Dependencies: `numpy`, `scipy`, `matplotlib`, `seaborn`, `pandas`, `streamlit`, `Pillow`, `fpdf2`.
 
----
+
 
 ## Quick Start
 
@@ -100,7 +100,7 @@ d.desenha(h1, modelo=MoriTanaka())
 d.juntar_grafs(h1)
 ```
 
----
+
 
 ## Usage
 
@@ -178,7 +178,6 @@ The report includes:
 2. **Combined Chart** — all models overlaid
 3. **Per-Model Results** — table with values at fi = 0.5 and fi = max, plus individual chart
 
----
 
 ## Architecture
 
@@ -240,7 +239,7 @@ All mechanical tensors are 6×6 NumPy arrays in Voigt notation (σ = C:ε). Cond
 | `matH[1]` | Inclusion |
 | `matH[2]` | Third phase (optional) |
 
----
+
 
 ## Micromechanical Models
 
@@ -289,7 +288,6 @@ E_h = 9 K_h G_h / (3 K_h + G_h)
 v_h = (3 K_h - 2 G_h) / (2 * (3 K_h + G_h))
 ```
 
----
 
 ## Analysis Types
 
@@ -350,7 +348,6 @@ class EstiloCustom(EstiloGrafico):
 EstiloRegistry.registrar(EstiloCustom())
 ```
 
----
 
 ## Extending with a New Model
 
@@ -379,7 +376,6 @@ class MyModel(Micmodelos):
             self.Gh = ...
 ```
 
----
 
 ## Contributing
 
@@ -397,8 +393,6 @@ Contributions are welcome. Please open an issue first to discuss what you'd like
 - Comments `# <------- FALTA TESTAR` mark untested code
 - Volume fractions: `fi` = inclusion, `fm` = matrix, `fr` = third phase
 - Tensors: 6×6 NumPy arrays in Voigt notation for mechanics; 3×3 for conductivity
-
----
 
 ## References
 
