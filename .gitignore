@@ -51,6 +51,7 @@ docs/_build/
 
 # Virtual environment
 venv/
+.venv/
 
 # Pytest
 .pytest_cache/
