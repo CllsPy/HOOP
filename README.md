@@ -1,408 +1,353 @@
 [![Release](https://img.shields.io/badge/release-v1.0.0-orange)](https://github.com/CllsPy/HOOP/releases)
-[![Python](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](#license)
 [![Streamlit](https://img.shields.io/badge/UI-Streamlit-red)](https://streamlit.io)
 
-# HOOP 
+# HOOP
 
 > A Python framework for micromechanical homogenization of composite materials, based on the framework proposed by Silva (2022).
 
-HOOP computes effective mechanical (elastic) and thermal (conductivity) properties of composite materials using classical micromechanical models. It provides both a programmatic API and an interactive Streamlit web interface.
-
+HOOP computes the effective elastic properties (and, through the API, the effective thermal conductivity) of two-phase composites with classical micromechanical models. It ships as an installable package, `hoop`, with a programmatic API and a Streamlit interface.
 
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Features](#features)
 - [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Usage](#usage)
-  - [Running the Web App](#running-the-web-app)
-  - [Using the API](#using-the-api)
-  - [Generating a PDF Report](#generating-a-pdf-report)
+- [Running the Interface](#running-the-interface)
+- [Programmatic API](#programmatic-api)
 - [Architecture](#architecture)
 - [Micromechanical Models](#micromechanical-models)
-- [Analysis Types](#analysis-types)
-- [Plot Styles](#plot-styles)
+- [Example Scripts](#example-scripts)
+- [Running Tests](#running-tests)
+- [Design System](#design-system)
 - [Contributing](#contributing)
+- [References](#references)
 - [License](#license)
-
-
-
-## Overview
-
-Composite materials are used across engineering — from concrete and asphalt to aerospace components. Predicting their effective properties from constituent phases is a fundamental problem in materials science. HOOP implements several well-established micromechanical homogenization models in a unified, extensible framework.
-
-The pipeline is:
-
-```
-Homogenizacao → Micmodelos → DesenhoMecanico
-```
-
-A `Homogenizacao` object holds the material phases (`Mecanico` or `Condutividade` instances), the analysis configuration (`Analise`), and delegates computation to the chosen micromechanical model. Results are visualized via `DesenhoMecanico` and can be exported to PDF via `gerar_relatorio`.
-
-
-
-## Features
-
-- **7 micromechanical models** for mechanical analysis: Voigt, Reuss, Dilute Suspension, Mori-Tanaka, Self-Consistent, GSC, and Popovic
-- **3 inclusion geometries**: sphere, cylinder, disk (via Eshelby tensor)
-- **3 plot styles**: Young's modulus vs. volume fraction, normalized modulus (Eh/Em), and Poisson's ratio
-- **Thermal conductivity** analysis (Voigt, Reuss, Self-Consistent, GSC)
-- **PDF report generation** with input data, combined plot, and per-model results
-- **Streamlit web interface** with dark theme and interactive model selection
-- **Extensible design**: add new models and plot styles without modifying existing code
-
 
 
 ## Installation
 
-**Requirements:** Python 3.8+
+**Requirements:** Python 3.9+
 
 ```bash
 git clone https://github.com/CllsPy/HOOP.git
 cd HOOP
-pip install -r requirements.txt
+pip install -e .          # the hoop package and its runtime dependencies
+pip install -e ".[dev]"   # the same, plus pytest
 ```
 
-Dependencies: `numpy`, `scipy`, `matplotlib`, `seaborn`, `pandas`, `streamlit`, `Pillow`, `fpdf2`.
+Runtime dependencies (declared in `pyproject.toml`, mirrored in `requirements.txt`): `numpy`, `scipy`, `matplotlib`, `seaborn`, `pandas`, `streamlit`, `Pillow`, `fpdf2`.
+
+The project uses a src layout: the code lives in `src/hoop/` and is imported as `hoop.<subpackage>` (for example `from hoop.micmodelos.gsc import GSC`). Install the package before running anything; no `sys.path` tweaks are needed.
 
 
+## Running the Interface
 
-## Quick Start
+From the repository root:
+
+```bash
+streamlit run src/app.py
+```
+
+`src/app.py` is a thin entry point that calls `hoop.ui.app.main()`. Run it from the root so Streamlit picks up the theme in `.streamlit/config.toml`.
+
+The interface is a three-step flow, shown in the sidebar:
+
+1. **Dados (Data):** pick a material preset (concrete, glass/epoxy, steel/tungsten carbide, carbon/epoxy, polymer/steel spheres) or enter custom matrix and inclusion properties (E in MPa, Poisson's ratio), the maximum inclusion fraction and the models to compare, then calculate. Mechanical analysis with spherical inclusions is enabled. Cylinder, disk and conductivity are shown but still under validation.
+2. **Análise (Analysis):** compare the curves of every model (Eh, Eh/Em or νh against fi), read values at a chosen fi, inspect each model individually and see the full table. Models that fail at some fi keep the curve computed up to that point and show the error. Dilute Suspension is flagged beyond its validity range (fi ≈ 0.10).
+3. **Relatório (Report):** choose a title, author and sections (combined chart, value table, one chart per model) and download the PDF.
+
+The Analysis and Report steps unlock after the first calculation. If the data changes afterwards, both steps warn you to recalculate.
+
+
+## Programmatic API
+
+### Stateless homogenization
+
+Describe the problem as an immutable `Composito` and ask a model for a result. Phases and composites are frozen dataclasses that validate on creation (E > 0, -1 < ν < 0.5, 0 ≤ fi ≤ 1, known geometry). Models keep no state between calls.
 
 ```python
-from homogenizacao.homogenizacao import Homogenizacao
-from mecanico.mecanico import Mecanico
-from desenho.desenho_mec import DesenhoMecanico
-from micmodelos.gsc import GSC
-from micmodelos.moritanaka import MoriTanaka
+from dataclasses import replace
 
-# Configure analysis
-h1 = Homogenizacao()
-h1.tipo         = 'global'
-h1.analise_tipo = 'mecanica'
-h1.geo          = 'esfera'
-h1.Em, h1.vm    = 41000, 0.2   # matrix: E [MPa], Poisson
-h1.Ei, h1.vi    = 250000, 0.25  # inclusion: E [MPa], Poisson
-h1.set_analise()
+from hoop.homogenizacao.composito import Composito
+from hoop.materiais.fases import FaseCondutividade, FaseMecanica
+from hoop.micmodelos.micmodelos import homogeneizar
+from hoop.micmodelos.moritanaka import MoriTanaka
 
-# Define material phases
-m1 = Mecanico(); m1.E = h1.Em; m1.v = h1.vm; m1.geo = h1.analH.geo  # matrix
-m2 = Mecanico(); m2.E = h1.Ei; m2.v = h1.vi; m2.geo = h1.analH.geo  # inclusion
-h1.matH.extend([m1, m2])
+c = Composito(matriz=FaseMecanica(E=30_000, v=0.20),
+              inclusao=FaseMecanica(E=70_000, v=0.30),
+              fi=0.3, geometria='esfera')        # 'esfera', 'cilindro' or 'disco'
+r = MoriTanaka().homogeneizar(c)                 # ResultadoMecanico(Eh, vh, kh, Gh, Em, fi, C)
+r50 = MoriTanaka().homogeneizar(replace(c, fi=0.5))  # replace() validates again
 
-# Plot models
+k = Composito(FaseCondutividade.isotropica(1.0), FaseCondutividade.isotropica(20.0), fi=0.3)
+MoriTanaka().homogeneizar_condutividade(k)       # ResultadoCondutividade(K11, K22, K33, fi, kh)
+
+homogeneizar(MoriTanaka(), k)                    # picks the method from the phase type
+```
+
+`ResultadoMecanico` holds `Eh`, `vh`, `kh`, `Gh` (MPa), `Em`, `fi` and the 6×6 stiffness tensor `C` in Voigt notation. `ResultadoCondutividade` holds `K11`, `K22`, `K33`, `fi` and the 3×3 tensor `kh`.
+
+### Sweeping the inclusion fraction
+
+`varrer` computes one scalar over fi = 0 … `fi_max` and returns a `Curva(xs, ys, nome)`. It never changes the composite or the model.
+
+```python
+from hoop.homogenizacao.varredura import varrer
+from hoop.micmodelos.gsc import GSC
+
+curva = varrer(c, GSC(), extrair=lambda r: r.Eh / r.Em, fi_max=0.6, passos=60)
+```
+
+### Plotting
+
+`DesenhoMecanico` draws property-versus-fi curves. Each call creates and **returns** a matplotlib `Figure`. Nothing opens a window: call `plt.show()` or `fig.savefig(...)` yourself. Styles: `'fixar_fracao'` (Eh), `'normalizar'` (Eh/Em) and `'poisson'` (νh). `DesenhoCondutividade('K11' | 'K22' | 'K33')` does the same for conductivity.
+
+`desenha` takes a `Homogenizacao` (the legacy configuration object below). The helper `hoop.exemplos.criar_analise` builds one from four numbers.
+
+```python
+import matplotlib.pyplot as plt
+
+from hoop.desenho.desenho_mec import DesenhoMecanico
+from hoop.exemplos import MATERIAIS, criar_analise
+from hoop.micmodelos.gsc import GSC
+from hoop.micmodelos.moritanaka import MoriTanaka
+
+h = criar_analise(**MATERIAIS['concreto'])       # fi = 0 sweeps the full range 0 → 1
 d = DesenhoMecanico(estilo='normalizar')
-d.desenha(h1, modelo=GSC())
-d.desenha(h1, modelo=MoriTanaka())
-d.juntar_grafs(h1)
+d.desenha(h, modelo=GSC())                       # Figure with one curve
+d.desenha(h, modelo=MoriTanaka())
+fig = d.juntar_grafs()                           # Figure with every curve drawn so far
+fig.savefig('comparacao.png')
+plt.show()                                       # only if you want windows
 ```
 
+### PDF reports
 
-
-## Usage
-
-### Running the Web App
-
-```bash
-cd src
-streamlit run app.py
-```
-
-The web interface allows you to:
-- Select analysis type (mechanical or conductivity)
-- Set inclusion geometry (sphere, cylinder, disk)
-- Input matrix and inclusion properties
-- Choose which micromechanical models to compare
-- Select the plot style
-- Download a PDF report
-
-### Using the API
-
-All source code lives under `src/`. Run scripts from `src/` so Python resolves bare-name imports:
-
-```bash
-cd src
-python Milled.py
-```
-
-**Setting up a two-phase analysis:**
+The interface report can be generated without running the Streamlit app. `hoop.ui.calculo.calcular` computes the curves from an `EntradaComposito`, and `gerar_pdf` returns the PDF bytes:
 
 ```python
-h1 = Homogenizacao()
-h1.tipo         = 'global'
-h1.analise_tipo = 'mecanica'    # 'mecanica' or 'condutividade'
-h1.geo          = 'esfera'      # 'esfera', 'cilindro', or 'disco'
-h1.Em, h1.vm    = 70000, 0.33   # matrix properties
-h1.Ei, h1.vi    = 210000, 0.30  # inclusion properties
-h1.set_analise()
+from hoop.ui.calculo import calcular
+from hoop.ui.entrada import EntradaComposito
+from hoop.ui.relatorio_analise import OpcoesRelatorio, gerar_pdf
 
-m1 = Mecanico(); m1.E = h1.Em; m1.v = h1.vm; m1.geo = h1.analH.geo
-m2 = Mecanico(); m2.E = h1.Ei; m2.v = h1.vi; m2.geo = h1.analH.geo
-h1.matH.extend([m1, m2])
+resultado = calcular(EntradaComposito(Em=30_000, vm=0.20, Ei=70_000, vi=0.30, fi_max=0.6))
+pdf = gerar_pdf(resultado, OpcoesRelatorio(titulo='Concrete', grandeza='Eh/Em',
+                                           graficos_por_modelo=True))
+open('concrete.pdf', 'wb').write(pdf)
 ```
 
-**Plotting individual models:**
+The older `hoop.relatorio.gerar_relatorio(objH, d, filename)` still writes a PDF from a `DesenhoMecanico` with curves already drawn. The example scripts use it.
+
+### Legacy adapter
+
+`Homogenizacao` with `Mecanico`/`Condutividade` phases in `matH` is still supported. It builds its `Composito` through `objH.composito()`, and `modelo.calc(objH)` copies the result onto the old attributes (`Eh`, `vh`, `C`, `K11`, ...). New code should use `Composito` directly.
 
 ```python
-d = DesenhoMecanico(estilo='fixar_fracao')  # 'fixar_fracao', 'poisson', 'normalizar'
-d.desenha(h1, modelo=Voigt())
-d.desenha(h1, modelo=Reuss())
-d.desenha(h1, modelo=GSC())
+from hoop.homogenizacao.homogenizacao import Homogenizacao
+from hoop.mecanico.mecanico import Mecanico
+
+h = Homogenizacao()
+h.tipo, h.analise_tipo, h.geo = 'global', 'mecanica', 'esfera'
+h.Em, h.vm, h.Ei, h.vi = 70_000, 0.33, 210_000, 0.30
+h.set_analise()
+m1 = Mecanico(); m1.E, m1.v, m1.geo = h.Em, h.vm, h.geo
+m2 = Mecanico(); m2.E, m2.v, m2.geo = h.Ei, h.vi, h.geo
+h.matH.extend([m1, m2])
 ```
 
-Each `desenha()` call opens its own figure window. Call `juntar_grafs()` to see all models overlaid:
+### Extending
+
+**A new model:** subclass `Micmodelos` plus the mixins of the analyses it supports, and implement the stateless methods. The legacy `calc(objH)` adapter comes for free.
 
 ```python
-d.juntar_grafs(h1)
+from hoop.micmodelos.micmodelos import Micmodelos
+from hoop.micmodelos.protocolos import ModeloMecanico
+
+class MeuModelo(Micmodelos, ModeloMecanico):
+    def __init__(self):
+        super().__init__()
+        self.tipo = 'MeuModelo'
+
+    def homogeneizar(self, composito):
+        Cm, Ci = composito.matriz.L, composito.inclusao.L   # read-only 6×6 tensors
+        S = composito.eshelby                               # Eshelby tensor of the inclusion
+        C_h = ...                                           # homogenized tensor
+        return self._resultado_do_tensor(composito, C_h)
 ```
 
-### Generating a PDF Report
-
-After plotting, generate a PDF with input data, combined chart, and per-model results:
+**A new plot style:** subclass `EstiloGrafico` and register it.
 
 ```python
-from relatorio.relatorio import gerar_relatorio
+from hoop.desenho.estilos.estilo_base import EstiloGrafico
+from hoop.desenho.estilos.estilo_registry import EstiloRegistry
 
-d.desenha(h1, modelo=GSC())
-d.desenha(h1, modelo=MoriTanaka())
-d.juntar_grafs(h1)
+class EstiloCisalhamento(EstiloGrafico):
+    nome = 'cisalhamento'
+    titulo = 'Módulo de cisalhamento'
+    rotulo_y = 'Gh [MPa]'
 
-gerar_relatorio(h1, d, filename='report.pdf')
+    def extrair(self, resultado) -> float:
+        return resultado.Gh
+
+EstiloRegistry.registrar(EstiloCisalhamento())
 ```
 
-The report includes:
-1. **Input Data** — analysis type, geometry, plot style, Em, vm, Ei, vi, fi range
-2. **Combined Chart** — all models overlaid
-3. **Per-Model Results** — table with values at fi = 0.5 and fi = max, plus individual chart
+New geometries are registered the same way in `hoop.mecanico.geometria_registry.GeometriaRegistry`.
 
 
 ## Architecture
 
 ```
+pyproject.toml                    # package metadata (hoop 1.0.0), dependencies, extras [dev]
+.streamlit/config.toml            # Streamlit theme (design system tokens)
 src/
-├── app.py                        # Streamlit entry point
-├── analise/analise.py            # Analise: analysis config (type, geometry, fractions)
-├── materiais/materiais.py        # Materiais: base class for material phases
-├── mecanico/
-│   ├── mecanico.py               # Mecanico(Materiais): computes L, P, S tensors
-│   ├── geometrias.py             # Eshelby tensors per geometry
-│   └── geometria_registry.py     # Registry pattern for geometries
-├── homogenizacao/
-│   ├── homogenizacao.py          # Homogenizacao: orchestrator
-│   └── calculadora_fracoes.py    # Volume fraction distribution
-├── micmodelos/
-│   ├── micmodelos.py             # Micmodelos: abstract base class
-│   ├── protocolos.py             # ModeloMecanico / ModeloCondutividade mixins
-│   ├── voigt.py                  # Voigt upper bound
-│   ├── reuss.py                  # Reuss lower bound
-│   ├── dilute.py                 # Dilute Suspension
-│   ├── moritanaka.py             # Mori-Tanaka
-│   ├── selfconsistent.py         # Self-Consistent (iterative)
-│   ├── gsc.py                    # Generalized Self-Consistent
-│   └── popovic.py                # Popovic (Voigt-Reuss average)
-├── desenho/
-│   ├── desenho_mec.py            # DesenhoMecanico: plot engine
-│   └── estilos/                  # Strategy pattern: fixar_fracao, poisson, normalizar
-├── resultados/resultados.py      # ResultadoMecanico / ResultadoCondutividade dataclasses
-└── relatorio/
-    ├── relatorio.py              # gerar_relatorio() entry point
-    ├── extrator.py               # Data extraction into pure dataclasses
-    ├── gerador_graficos.py       # Matplotlib → PNG bytes (via BytesIO)
-    └── construtor_pdf.py         # PDF assembly with fpdf2
+├── app.py                        # thin Streamlit entry point → hoop.ui.app.main()
+├── Milled.py                     # exploratory script (legacy API)
+├── cases/                        # runnable example scripts (see below)
+└── hoop/
+    ├── exemplos.py               # MATERIAIS presets + criar_analise() helper
+    ├── materiais/
+    │   ├── fases.py              # FaseMecanica, FaseCondutividade (immutable phases)
+    │   ├── materiais.py          # Materiais: base of the legacy phase objects
+    │   └── condutividade.py      # Condutividade (legacy conductivity phase)
+    ├── mecanico/
+    │   ├── tensores.py           # isotropic stiffness, Hill tensor, K/G ↔ E/ν
+    │   ├── geometrias.py         # Eshelby tensors per geometry
+    │   ├── geometria_registry.py # GeometriaRegistry, tensor_eshelby()
+    │   └── mecanico.py           # Mecanico (legacy mechanical phase)
+    ├── homogenizacao/
+    │   ├── composito.py          # Composito (immutable two-phase composite)
+    │   ├── varredura.py          # varrer() → Curva
+    │   ├── homogenizacao.py      # Homogenizacao (legacy adapter)
+    │   └── calculadora_fracoes.py
+    ├── analise/analise.py        # Analise: legacy analysis configuration
+    ├── micmodelos/               # Voigt, Reuss, Dilute, Mori-Tanaka, SC, GSC, Popovic
+    │   ├── micmodelos.py         # Micmodelos base class + homogeneizar(modelo, composito)
+    │   └── protocolos.py         # ModeloMecanico / ModeloCondutividade mixins
+    ├── resultados/resultados.py  # ResultadoMecanico / ResultadoCondutividade (frozen)
+    ├── desenho/
+    │   ├── desenho_mec.py        # DesenhoMecanico: returns matplotlib Figures
+    │   ├── desenho_cond.py       # DesenhoCondutividade
+    │   └── estilos/              # EstiloRegistry + fixar_fracao, normalizar, poisson, condutividade_*
+    ├── relatorio/
+    │   └── relatorio.py, extrator.py, gerador_graficos.py, construtor_pdf.py
+    │                             # gerar_relatorio(objH, d, filename) (legacy report)
+    └── ui/
+        ├── app.py                # main(): page setup, sidebar step map, page dispatch
+        ├── entrada.py            # EntradaComposito, presets, validation (no Streamlit)
+        ├── formatacao.py         # pt-BR number formatting and parsing
+        ├── estado.py             # st.session_state: step, input, result, reading
+        ├── acoes.py              # calculate with progress, register, rerun
+        ├── relatorio_analise.py  # gerar_pdf(resultado, opcoes) → bytes (interface report)
+        ├── pdf_hoop.py           # PaginaHOOP: fpdf2 page with the design system
+        ├── calculo.py            # MODELOS catalog, calcular() → ResultadoAnalise (no Streamlit)
+        ├── graficos.py           # interface figures
+        ├── tema.py               # colors, series, glyphs, fonts, CSS
+        ├── componentes.py        # reusable widgets
+        └── paginas/              # dados.py, analise.py, relatorio.py: render()
+tests/                            # pytest suite
 ```
 
-**Key design patterns:**
-- **Registry** — `EstiloRegistry` and `GeometriaRegistry` allow extensible registration of styles and geometries without modifying existing code
-- **Strategy** — `EstiloGrafico` protocol separates data collection from rendering
-- **Mixins** — `ModeloMecanico` and `ModeloCondutividade` decouple analysis types
-- **Abstract Base Class** — `Micmodelos` enforces the `calc(objH)` interface on all models
+**Design notes**
 
-### Tensors
-
-All mechanical tensors are 6×6 NumPy arrays in Voigt notation (σ = C:ε). Conductivity tensors are 3×3 (q = K·∇T).
-
-### Volume Fractions
-
-- `fi` — inclusion fraction
-- `fm` — matrix fraction
-- `fr` — third phase fraction (reinforcement), optional
-- Constraint: `fi + fm + fr = 1.0`
-
-### Material Phases in `matH`
-
-| Index | Phase |
-|---|---|
-| `matH[0]` | Matrix |
-| `matH[1]` | Inclusion |
-| `matH[2]` | Third phase (optional) |
-
+- **Immutable core:** phases, composites and results are frozen dataclasses. The phase tensors are read-only arrays. Models are stateless.
+- **Registries:** `EstiloRegistry` and `GeometriaRegistry` add styles and geometries without editing existing code.
+- **Mixins:** `ModeloMecanico` and `ModeloCondutividade` declare which analyses a model supports. `homogeneizar(modelo, composito)` dispatches on the phase type.
+- **Calculation apart from presentation:** `varrer` and `hoop.ui.calculo` compute. `desenho`, `ui.graficos` and `relatorio` only draw.
+- **Conventions:** `fi` is the inclusion fraction and `fm = 1 - fi` the matrix fraction. Mechanical tensors are 6×6 in Voigt notation (σ = C:ε), conductivity tensors are 3×3 (q = K·∇T). E is in MPa.
 
 
 ## Micromechanical Models
 
-| Model | Class | Type | Notes |
+All seven models support both mechanical and conductivity analysis through the API.
+
+| Model | Class | Family | Notes |
 |---|---|---|---|
-| Voigt | `Voigt` | Bound | Upper bound — uniform strain assumption |
-| Reuss | `Reuss` | Bound | Lower bound — uniform stress assumption |
-| Dilute Suspension | `DiluteSuspension` | Mean-field | Valid for low fi (< ~10%) |
-| Mori-Tanaka | `MoriTanaka` | Mean-field | Accounts for inclusion interaction |
-| Self-Consistent | `SelfConsistent` | Self-consistent | Iterative, valid for wide fi range |
-| GSC | `GSC` | Generalized SC | Composite sphere assemblage |
-| Popovic | `Popovic` | Average | Arithmetic mean of Voigt and Reuss bounds |
+| Voigt | `Voigt` | Bound | Upper bound: uniform strain |
+| Reuss | `Reuss` | Bound | Lower bound: uniform stress |
+| Dilute Suspension | `DiluteSuspension` | Mean field | Isolated inclusions, valid for fi ≲ 0.10 |
+| Mori-Tanaka | `MoriTanaka` | Mean field | Accounts for interaction between inclusions |
+| Self-Consistent | `SelfConsistent` | Self-consistent | Iterative. Raises `RuntimeError` if it does not converge |
+| GSC | `GSC` | Self-consistent | Composite sphere assemblage (Christensen and Lo) |
+| Popovic | `Popovic` | Average | Arithmetic mean of Voigt and Reuss |
 
-### Model Equations (Mechanical)
+**Mechanical equations**
 
-**Voigt:**
 ```
-C_h = fi * C_i + (1 - fi) * C_m
-```
-
-**Reuss:**
-```
-C_h = [fi * C_i⁻¹ + (1 - fi) * C_m⁻¹]⁻¹
-```
-
-**Dilute Suspension:**
-```
-A = [I + S * C_m⁻¹ * (C_i - C_m)]⁻¹
-C_h = C_m + fi * (C_i - C_m) * A
-```
-
-**Mori-Tanaka:**
-```
-C_h = C_m + fi * (C_i - C_m) * [fi * I + (1 - fi) * A_dilute]⁻¹
-```
-
-**GSC (bulk modulus K):**
-```
-K_h = K_m + fi * (K_i - K_m) * (3K_m + 4G_m) / (3K_m + 4G_m + 3(1-fi)(K_i - K_m))
-```
-Shear modulus G_h is solved from a quadratic equation in G.
-
-**Effective Young's modulus and Poisson's ratio (from tensor C):**
-```
-E_h = 9 K_h G_h / (3 K_h + G_h)
-v_h = (3 K_h - 2 G_h) / (2 * (3 K_h + G_h))
+Voigt:        C_h = fi C_i + (1 - fi) C_m
+Reuss:        C_h = [fi C_i⁻¹ + (1 - fi) C_m⁻¹]⁻¹
+Dilute:       A = [I + S C_m⁻¹ (C_i - C_m)]⁻¹,  C_h = C_m + fi (C_i - C_m) A
+Mori-Tanaka:  C_h = C_m + fi (C_i - C_m) A [fi A + (1 - fi) I]⁻¹
+GSC (bulk):   K_h = K_m + fi (K_i - K_m)(3K_m + 4G_m) / (3K_m + 4G_m + 3(1 - fi)(K_i - K_m))
+              G_h is the root of the Christensen–Lo quadratic.
+E and ν:      E_h = 9 K_h G_h / (3 K_h + G_h),  ν_h = (3 K_h - 2 G_h) / (2 (3 K_h + G_h))
 ```
 
 
-## Analysis Types
+## Example Scripts
 
-### Mechanical (`analise_tipo = 'mecanica'`)
+`src/cases/` holds runnable studies built on `hoop.exemplos` and the legacy API. Each one draws figures, and some write a PDF to the current directory:
 
-Input per phase: Young's modulus `E` [MPa] and Poisson's ratio `v`.
-
-Output (stored on `objH.modH`):
-
-| Attribute | Description |
+| Script | What it shows |
 |---|---|
-| `Eh` | Homogenized Young's modulus [MPa] |
-| `vh` | Homogenized Poisson's ratio |
-| `kh` | Homogenized bulk modulus [MPa] |
-| `Gh` | Homogenized shear modulus [MPa] |
-| `C` | Homogenized constitutive tensor (6×6) |
+| `case_todos_modelos.py` | all seven models on one system |
+| `case_fixar_fracao.py` | Eh vs fi |
+| `case_normalizar.py` | Eh/Em vs fi |
+| `case_poisson.py` | νh vs fi |
+| `case_contraste.py` | effect of the stiffness contrast Ei/Em (Mori-Tanaka) |
+| `case_geometrias.py` | sphere vs cylinder vs disk (Mori-Tanaka) |
 
-### Conductivity (`analise_tipo = 'condutividade'`)
-
-Input per phase: thermal conductivity values `k11`, `k22`, `k33`.
-
-Output:
-
-| Attribute | Description |
-|---|---|
-| `K11`, `K22`, `K33` | Homogenized conductivity tensor components |
-| `kh` | Homogenized conductivity tensor (3×3) |
-
----
-
-## Plot Styles
-
-| Style key | X axis | Y axis | Class |
-|---|---|---|---|
-| `'fixar_fracao'` | fi | Eh [MPa] | `EstiloFixarFracao` |
-| `'normalizar'` | fi | Eh / Em | `EstiloNormalizar` |
-| `'poisson'` | fi | vh | `EstiloPoisson` |
-
-Register a custom style:
-
-```python
-from desenho.estilos.estilo_base import EstiloGrafico
-from desenho.estilos.estilo_registry import EstiloRegistry
-
-class EstiloCustom(EstiloGrafico):
-    nome = 'custom'
-
-    def coletar_ponto(self, objH, modelo, Fi):
-        objH.analH.fi = Fi
-        objH.calc()
-        return Fi, objH.modH.Gh  # shear modulus
-
-    def configurar_eixos(self, ax):
-        ax.set_title('Shear Modulus vs fi')
-        ax.set_xlabel('fi')
-        ax.set_ylabel('Gh [MPa]')
-
-EstiloRegistry.registrar(EstiloCustom())
+```bash
+python src/cases/case_todos_modelos.py
+MPLBACKEND=Agg python src/cases/case_contraste.py   # no windows
 ```
 
-
-## Extending with a New Model
-
-Subclass `Micmodelos` and implement `calc(objH)`:
-
-```python
-from micmodelos.micmodelos import Micmodelos
-
-class MyModel(Micmodelos):
-    def __init__(self):
-        super().__init__()
-        self.tipo = 'MyModel'
-
-    def calc(self, objH):
-        if objH.analH.analise_type == 'mecanica':
-            fi = objH.analH.fi
-            Cm = objH.matH[0].L   # matrix stiffness tensor
-            Ci = objH.matH[1].L   # inclusion stiffness tensor
-
-            # ... compute C_h ...
-
-            self.C  = C_h
-            self.Eh = ...
-            self.vh = ...
-            self.kh = ...
-            self.Gh = ...
-```
+`src/Milled.py` is an exploratory script. With its current inclusion modulus (`Ei = 0.1` MPa, not yet confirmed), Self-Consistent stops with a `RuntimeError` because it does not converge.
 
 
 ## Running Tests
 
 ```bash
-pip install pytest
-pytest tests
+pip install -e ".[dev]"
+pytest
 ```
 
-The suite checks each model against the Voigt/Reuss bounds and the pure-phase limits, validates Self-Consistent against a direct solution of Hill's equations, and drives the Streamlit app with `streamlit.testing`.
+The suite checks each model against the Voigt/Reuss bounds and the pure-phase limits. It validates Self-Consistent against a direct solution of Hill's equations and checks known values for concrete. It also checks that the core is immutable, that the stateless API and the legacy adapter give identical results, and it drives the Streamlit app with `streamlit.testing` (each step, the full flow and PDF generation).
+
+
+## Design System
+
+The interface and the PDF share one set of tokens, defined in `src/hoop/ui/tema.py`. The Streamlit side lives in [`.streamlit/config.toml`](.streamlit/config.toml).
+
+| Token | Value | Use |
+|---|---|---|
+| `accent` | `#0B6E6E` | primary actions, links, Mori-Tanaka series |
+| `ink` / `ink-muted` | `#142120` / `#4F5E5C` | text |
+| `surface-0` / `surface-1` / `surface-2` | `#F6F7F5` / `#FFFFFF` / `#ECEFEC` | backgrounds |
+| `line` | `#D5DBD8` | borders |
+| `phase-matrix` / `phase-inclusion` | `#3E6F8A` / `#A85A0C` | matrix and inclusion labels |
+| `success` / `warning` / `danger` | `#2E7D4F` / `#9A5800` / `#B3261E` | states |
+| series | bounds `#6E7C7A`, SC `#C2620F`, GSC `#2F55C8`, Dilute `#8E3B8A`, Popovic `#5F7316` | one fixed color (plus dash and marker) per model |
+
+- **Type:** Archivo (headings), Source Sans 3 (text), IBM Plex Mono (numbers and code), loaded from Google Fonts.
+- **Icons:** Material Symbols in Streamlit (`:material/bubble_chart:` as the page icon), plus inline SVG glyphs for the inclusion geometries (sphere, cylinder, disk) in `GLIFOS`.
 
 
 ## Contributing
 
-Contributions are welcome. Please open an issue first to discuss what you'd like to change.
+Contributions are welcome. Please open an issue first to discuss the change.
 
-**Areas open for contribution:**
-- Third-phase support in the Streamlit UI
-- Cylinder and disk geometry validation
-- Conductivity analysis UI completion
-- Thermomechanical expansion coefficients
-- Additional micromechanical models (Halpin-Tsai, Hashin-Shtrikman, etc.)
+Open areas:
 
-**Code conventions:**
-- Comments `# <------- FUNCIONANDO` mark tested/working code
-- Comments `# <------- FALTA TESTAR` mark untested code
-- Volume fractions: `fi` = inclusion, `fm` = matrix, `fr` = third phase
-- Tensors: 6×6 NumPy arrays in Voigt notation for mechanics; 3×3 for conductivity
+- validation of cylinder and disk geometries, then enabling them in the interface
+- conductivity analysis in the interface
+- third-phase support
+- thermomechanical expansion coefficients
+- more models (Halpin-Tsai, Hashin-Shtrikman, ...)
+
+Code conventions: names in Portuguese, as in the rest of the code. `fi` = inclusion fraction, `fm` = matrix fraction. Every change keeps the test suite green.
+
 
 ## References
 
@@ -413,4 +358,5 @@ Contributions are welcome. Please open an issue first to discuss what you'd like
 
 
 ## License
-This project is licensed under the [MIT License](LICENSE).
+
+This project is licensed under the MIT License.

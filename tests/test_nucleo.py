@@ -1,22 +1,23 @@
 import numpy as np
 import pytest
 
-from analise.analise import Analise
-from cases._setup import criar_analise, MATERIAIS
-from homogenizacao.homogenizacao import Homogenizacao
-from materiais.condutividade import Condutividade
-from mecanico.mecanico import Mecanico
-from mecanico.tensores import (propriedades_isotropicas, tensor_hill_esfera,
-                               tensor_rigidez_isotropico)
-from micmodelos.dilute import DiluteSuspension
-from micmodelos.gsc import GSC
-from micmodelos.micmodelos import Micmodelos
-from micmodelos.moritanaka import MoriTanaka
-from micmodelos.popovic import Popovic
-from micmodelos.protocolos import ModeloMecanico
-from micmodelos.reuss import Reuss
-from micmodelos.selfconsistent import SelfConsistent
-from micmodelos.voigt import Voigt
+from hoop.analise.analise import Analise
+from hoop.exemplos import criar_analise, MATERIAIS
+from hoop.homogenizacao.homogenizacao import Homogenizacao
+from hoop.materiais.condutividade import Condutividade
+from hoop.mecanico.mecanico import Mecanico
+from hoop.mecanico.tensores import (propriedades_isotropicas, tensor_hill_esfera,
+                                    tensor_rigidez_isotropico)
+from hoop.micmodelos.dilute import DiluteSuspension
+from hoop.micmodelos.gsc import GSC
+from hoop.micmodelos.micmodelos import Micmodelos
+from hoop.micmodelos.moritanaka import MoriTanaka
+from hoop.micmodelos.popovic import Popovic
+from hoop.micmodelos.protocolos import ModeloMecanico
+from hoop.micmodelos.reuss import Reuss
+from hoop.micmodelos.selfconsistent import SelfConsistent
+from hoop.micmodelos.voigt import Voigt
+from hoop.resultados.resultados import ResultadoMecanico
 
 MODELOS = [Voigt, Reuss, MoriTanaka, GSC, Popovic, SelfConsistent, DiluteSuspension]
 E_ACO, V_ACO = 210_000, 0.30
@@ -147,8 +148,8 @@ def test_tipo_desconhecido_nao_suportado(Modelo, tipo):
 
 def test_modelo_sem_mixin_de_condutividade_nao_suporta_condutividade():
     class SoMecanico(Micmodelos, ModeloMecanico):
-        def calc_mecanico(self, objH):
-            self.Eh = 1.0
+        def homogeneizar(self, composito):
+            return ResultadoMecanico(Eh=1.0)
 
     h = criar_condutividade(1.0, 2.0, 0.5)
     h.modH = SoMecanico()

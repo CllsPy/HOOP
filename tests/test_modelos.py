@@ -4,14 +4,14 @@ import numpy as np
 import pytest
 from scipy.optimize import fsolve
 
-from cases._setup import criar_analise, MATERIAIS
-from micmodelos.voigt import Voigt
-from micmodelos.reuss import Reuss
-from micmodelos.dilute import DiluteSuspension
-from micmodelos.moritanaka import MoriTanaka
-from micmodelos.selfconsistent import SelfConsistent
-from micmodelos.gsc import GSC
-from micmodelos.popovic import Popovic
+from hoop.exemplos import criar_analise, MATERIAIS
+from hoop.micmodelos.voigt import Voigt
+from hoop.micmodelos.reuss import Reuss
+from hoop.micmodelos.dilute import DiluteSuspension
+from hoop.micmodelos.moritanaka import MoriTanaka
+from hoop.micmodelos.selfconsistent import SelfConsistent
+from hoop.micmodelos.gsc import GSC
+from hoop.micmodelos.popovic import Popovic
 
 
 SISTEMAS = dict(MATERIAIS)

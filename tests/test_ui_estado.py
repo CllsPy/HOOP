@@ -1,16 +1,21 @@
+import pathlib
+import re
 from dataclasses import replace
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from cases._setup import MATERIAIS
-from ui import calculo
-from ui.calculo import MODELOS, MODELOS_PADRAO, InfoModelo, calcular, fracoes, valor_em
-from ui.estado import (PERSONALIZADO, PRESETS, EntradaComposito, aplicar_preset,
-                       formatar_decimal, formatar_numero, formatar_percentual,
-                       interpretar_numero, preset_correspondente, resumo_entrada, validar)
-from ui.graficos import figura_comparacao, figura_modelo_individual, limites_y
+from hoop.exemplos import MATERIAIS
+from hoop.resultados.resultados import ResultadoMecanico
+from hoop.ui import calculo
+from hoop.ui.calculo import (GRANDEZAS, MODELOS, MODELOS_PADRAO, InfoModelo, abreviar, calcular,
+                             escolher_referencia, fracoes, valor_em)
+from hoop.ui.entrada import (PERSONALIZADO, PRESETS, EntradaComposito, aplicar_preset,
+                             preset_correspondente, resumo_entrada, validar)
+from hoop.ui.formatacao import (formatar_decimal, formatar_numero, formatar_percentual,
+                                interpretar_numero)
+from hoop.ui.graficos import figura_comparacao, figura_modelo_individual, limites_y
 
 CONCRETO_FI_030 = {
     'Voigt': 42_339, 'Reuss': 36_207, 'Mori-Tanaka': 38_235,
@@ -53,6 +58,7 @@ def test_aplicar_preset_e_personalizado():
     ('vm', 0.5), ('vi', 0.6), ('vm', -0.1), ('Em', 0.0), ('Ei', -5.0),
     ('modelos', ()), ('fi_max', 0.0), ('fi_max', 1.2),
     ('geometria', 'cilindro'), ('tipo_analise', 'condutividade'),
+    ('vm', float('nan')), ('Em', float('inf')), ('Ei', float('nan')),
 ])
 def test_validar_aponta_o_campo_invalido(campo, valor):
     erros = validar(replace(EntradaComposito(), **{campo: valor}))
@@ -81,6 +87,7 @@ def test_formatar_decimal_e_percentual():
 
 @pytest.mark.parametrize('texto, esperado', [
     ('30 000', 30000.0), ('30e3', 30000.0), ('0,3', 0.3), ('0.3', 0.3), ('abc', None),
+    ('nan', None), ('inf', None), ('-inf', None), ('1e999', None),
 ])
 def test_interpretar_numero(texto, esperado):
     assert interpretar_numero(texto) == esperado
@@ -113,15 +120,11 @@ def test_calcular_devolve_tres_grandezas_e_avisa_progresso():
 
 
 class ModeloQueFalha:
-    def __init__(self):
-        self.tipo = 'Falso'
-        self.Em = 30_000
-
-    def calc(self, objH):
-        fi = objH.analH.fi
+    def homogeneizar(self, composito):
+        fi = composito.fi
         if fi > 0.855:
             raise ValueError('Sem raiz real.')
-        self.Eh, self.vh = 30_000 * (1 + fi), 0.2
+        return ResultadoMecanico(Eh=30_000 * (1 + fi), vh=0.2, Em=30_000, fi=fi)
 
 
 def test_falha_parcial_guarda_curva_ate_o_ponto(monkeypatch):
@@ -171,3 +174,29 @@ def test_modelos_individuais_na_mesma_escala(resultado_concreto):
     figs = [figura_modelo_individual(resultado_concreto, n) for n in resultado_concreto.curvas]
     escalas = {f.axes[0].get_ylim() for f in figs}
     assert escalas == {limites_y(resultado_concreto, 'Eh')}
+
+
+def test_dominio_nao_importa_a_interface():
+    raiz = pathlib.Path(__file__).resolve().parents[1] / 'src' / 'hoop'
+    infratores = [str(p.relative_to(raiz)) for p in raiz.rglob('*.py')
+                  if 'ui' not in p.relative_to(raiz).parts
+                  and re.search(r'^\s*(from|import)\s+hoop\.ui\b', p.read_text('utf-8'), re.M)]
+    assert infratores == []
+
+
+def test_cada_grandeza_sabe_extrair_e_ler_a_matriz():
+    entrada = EntradaComposito()
+    r = ResultadoMecanico(Eh=40_000, vh=0.25, Em=entrada.Em)
+    assert {g: info.extrair(r) for g, info in GRANDEZAS.items()} == pytest.approx(
+        {'Eh': 40_000, 'Eh/Em': 40_000 / 30_000, 'vh': 0.25})
+    assert {g: info.valor_na_matriz(entrada) for g, info in GRANDEZAS.items()} == {
+        'Eh': 30_000, 'Eh/Em': 1.0, 'vh': 0.20}
+    assert len({info.sufixo_arquivo for info in GRANDEZAS.values()}) == len(GRANDEZAS)
+
+
+def test_referencia_prefere_modelos_que_nao_sao_limites(resultado_concreto):
+    assert escolher_referencia(resultado_concreto) == 'Mori-Tanaka'
+    assert escolher_referencia(resultado_concreto, 'GSC') == 'GSC'
+    so_limites = calcular(replace(EntradaComposito(), modelos=('Voigt', 'Reuss', 'GSC')))
+    assert escolher_referencia(so_limites) == 'GSC'
+    assert abreviar('Mori-Tanaka') == 'MT' and abreviar('GSC') == 'GSC'

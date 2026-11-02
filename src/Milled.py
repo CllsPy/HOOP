@@ -1,14 +1,14 @@
 import matplotlib.pyplot as plt
 
-from homogenizacao.homogenizacao import Homogenizacao
-from mecanico.mecanico import Mecanico
-from desenho.desenho_mec import DesenhoMecanico
-from relatorio.relatorio import gerar_relatorio
+from hoop.homogenizacao.homogenizacao import Homogenizacao
+from hoop.mecanico.mecanico import Mecanico
+from hoop.desenho.desenho_mec import DesenhoMecanico
+from hoop.relatorio.relatorio import gerar_relatorio
 
-from micmodelos.dilute import DiluteSuspension
-from micmodelos.moritanaka import MoriTanaka
-from micmodelos.selfconsistent import SelfConsistent
-from micmodelos.gsc import GSC
+from hoop.micmodelos.dilute import DiluteSuspension
+from hoop.micmodelos.moritanaka import MoriTanaka
+from hoop.micmodelos.selfconsistent import SelfConsistent
+from hoop.micmodelos.gsc import GSC
 
 h1 = Homogenizacao()
 d = DesenhoMecanico(estilo='fixar_fracao')

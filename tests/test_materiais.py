@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from materiais.condutividade import Condutividade
-from materiais.materiais import Materiais
+from hoop.materiais.condutividade import Condutividade
+from hoop.materiais.materiais import Materiais
 
 
 def _condutividade(geo='esfera', k=(1.0, 2.0, 3.0)):

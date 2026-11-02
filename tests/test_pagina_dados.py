@@ -3,8 +3,9 @@ import os
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from ui.calculo import MODELOS_PADRAO, ResultadoAnalise
-from ui.paginas.dados import texto_campo
+from hoop.ui.calculo import MODELOS_PADRAO, ResultadoAnalise
+from hoop.ui.entrada import EntradaComposito
+from hoop.ui.paginas.dados import texto_campo
 
 APP = os.path.join(os.path.dirname(__file__), '..', 'src', 'app.py')
 
@@ -118,6 +119,30 @@ def test_voltar_para_dados_preserva_a_entrada(app):
 
 @pytest.mark.parametrize('valor, casas, esperado', [
     (30000, 0, '30 000'), (0.2, 2, '0,20'), (0.255, 2, '0,255'), (3500.5, 0, '3 500,5'),
+    (0.4999999, 2, '0,4999999'), (1e-7, 0, '0,0000001'),
 ])
 def test_texto_campo(valor, casas, esperado):
     assert texto_campo(valor, casas) == esperado
+
+
+@pytest.mark.parametrize('nome, texto', [('vm', 'nan'), ('Ei', '1e999'), ('Em', 'inf')])
+def test_texto_nao_finito_pede_correcao_e_mantem_o_valor(app, nome, texto):
+    campo(app, nome).input(texto).run()
+    app.run()
+
+    assert not app.exception
+    assert 'Digite um número, como 30 000 ou 0,3.' in mensagens_de_erro(app)
+    assert getattr(app.session_state['hoop_entrada'], nome) == getattr(EntradaComposito(), nome)
+
+
+@pytest.mark.parametrize('nome, texto, valor', [('vi', '0,4999999', 0.4999999),
+                                                ('Ei', '0,0000001', 1e-7)])
+def test_ida_e_volta_nao_arredonda_os_campos(app, nome, texto, valor):
+    campo(app, nome).input(texto).run()
+    botao_calcular(app).click().run()
+    app.sidebar.button(key='ir-dados').click().run()
+    campo(app, 'Em').input('31 000').run()
+
+    assert not app.exception
+    assert getattr(app.session_state['hoop_entrada'], nome) == valor
+    assert not mensagens_de_erro(app)

@@ -4,12 +4,12 @@ import os
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from ui.calculo import MODELOS_PADRAO
-from ui.calculo import calcular as calcular_curvas
-from ui.estado import EntradaComposito
-from ui.paginas.analise import (colorir_modelos, formatar_tabela_completa, tabela_completa,
-                                  tabela_em_fi)
-from ui.tema import SERIES
+from hoop.ui.calculo import MODELOS_PADRAO
+from hoop.ui.calculo import calcular as calcular_curvas
+from hoop.ui.entrada import EntradaComposito
+from hoop.ui.paginas.analise import (colorir_modelos, formatar_tabela_completa, tabela_completa,
+                                     tabela_em_fi)
+from hoop.ui.tema import SERIES
 
 APP = os.path.join(os.path.dirname(__file__), '..', 'src', 'app.py')
 

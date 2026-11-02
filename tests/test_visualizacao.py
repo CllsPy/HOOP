@@ -2,19 +2,21 @@ import matplotlib.pyplot as plt
 import pytest
 from matplotlib.figure import Figure
 
-from cases._setup import criar_analise, MATERIAIS
-from desenho.desenho_cond import DesenhoCondutividade
-from desenho.desenho_mec import DesenhoMecanico
-from desenho.estilos.estilo_registry import EstiloRegistry
-from homogenizacao.homogenizacao import Homogenizacao
-from homogenizacao.varredura import Curva, varrer
-from materiais.condutividade import Condutividade
-from mecanico.mecanico import Mecanico
-from micmodelos.gsc import GSC
-from micmodelos.moritanaka import MoriTanaka
-from micmodelos.reuss import Reuss
-from micmodelos.voigt import Voigt
-from relatorio.relatorio import gerar_relatorio
+from hoop.exemplos import criar_analise, MATERIAIS
+from hoop.desenho.desenho_cond import DesenhoCondutividade
+from hoop.desenho.desenho_mec import DesenhoMecanico
+from hoop.desenho.estilos.estilo_registry import EstiloRegistry
+from hoop.homogenizacao.composito import Composito
+from hoop.homogenizacao.homogenizacao import Homogenizacao
+from hoop.homogenizacao.varredura import Curva, varrer
+from hoop.materiais.condutividade import Condutividade
+from hoop.materiais.fases import FaseCondutividade, FaseMecanica
+from hoop.mecanico.mecanico import Mecanico
+from hoop.micmodelos.gsc import GSC
+from hoop.micmodelos.moritanaka import MoriTanaka
+from hoop.micmodelos.reuss import Reuss
+from hoop.micmodelos.voigt import Voigt
+from hoop.relatorio.relatorio import gerar_relatorio
 
 CONCRETO = MATERIAIS['concreto']
 
@@ -47,9 +49,13 @@ def analise_condutividade(km=1.0, ki=10.0):
 
 # ── varrer(): domínio puro ──────────────────────────────────────────────────
 
+def composito_concreto(fi=0.0):
+    return Composito(FaseMecanica(CONCRETO['Em'], CONCRETO['vm']),
+                     FaseMecanica(CONCRETO['Ei'], CONCRETO['vi']), fi=fi)
+
+
 def test_varrer_devolve_curva_com_101_pontos_de_0_a_1():
-    h = criar_analise(**CONCRETO)
-    curva = varrer(h, Voigt(), lambda m: m.Eh)
+    curva = varrer(composito_concreto(), Voigt(), lambda r: r.Eh)
 
     assert isinstance(curva, Curva)
     assert curva.nome == 'Voigt'
@@ -60,12 +66,12 @@ def test_varrer_devolve_curva_com_101_pontos_de_0_a_1():
 
 
 def test_varrer_usa_os_mesmos_pontos_do_laco_original():
-    curva = varrer(criar_analise(**CONCRETO), Reuss(), lambda m: m.Eh)
+    curva = varrer(composito_concreto(), Reuss(), lambda r: r.Eh)
     assert curva.xs == [i / 100 for i in range(101)]
 
 
 def test_varrer_respeita_fi_max_e_passos():
-    curva = varrer(criar_analise(**CONCRETO), Voigt(), lambda m: m.Eh, fi_max=0.5, passos=10)
+    curva = varrer(composito_concreto(), Voigt(), lambda r: r.Eh, fi_max=0.5, passos=10)
     assert len(curva.xs) == 11
     assert curva.xs[-1] == pytest.approx(0.5)
 
@@ -73,33 +79,44 @@ def test_varrer_respeita_fi_max_e_passos():
 @pytest.mark.parametrize('kwargs', [dict(passos=0), dict(fi_max=0.0), dict(fi_max=1.5)])
 def test_varrer_rejeita_parametros_invalidos(kwargs):
     with pytest.raises(ValueError):
-        varrer(criar_analise(**CONCRETO), Voigt(), lambda m: m.Eh, **kwargs)
+        varrer(composito_concreto(), Voigt(), lambda r: r.Eh, **kwargs)
 
 
-def test_varrer_restaura_fracao_e_modelo_da_analise():
-    h = criar_analise(**CONCRETO)
-    modelo_anterior = GSC()
-    h.modH = modelo_anterior
-    h.analH.fi, h.analH.fm = 0.3, 0.7
+def test_varrer_nao_altera_composito_nem_modelo():
+    base = composito_concreto(fi=0.3)
+    modelo = MoriTanaka()
+    estado_antes = dict(vars(modelo))
 
-    varrer(h, MoriTanaka(), lambda m: m.Eh)
+    curva = varrer(base, modelo, lambda r: r.Eh)
 
-    assert (h.analH.fi, h.analH.fm) == (0.3, 0.7)
-    assert h.modH is modelo_anterior
+    assert base.fi == 0.3
+    assert vars(modelo) == estado_antes
+    assert curva.ys[30] == MoriTanaka().homogeneizar(base).Eh
 
 
-def test_varrer_restaura_estado_mesmo_quando_o_modelo_falha():
-    h = criar_analise(**CONCRETO)
-    h.analH.analise_type = 'inexistente'
-    with pytest.raises(ValueError):
-        varrer(h, Voigt(), lambda m: m.Eh)
-    assert h.analH.fi == 0.0
+def test_varrer_de_condutividade_usa_o_metodo_de_condutividade():
+    base = Composito(FaseCondutividade.isotropica(1.0), FaseCondutividade.isotropica(10.0), fi=0)
+    curva = varrer(base, Voigt(), lambda r: r.K11, passos=10)
+    assert curva.ys[0] == pytest.approx(1.0) and curva.ys[-1] == pytest.approx(10.0)
+
+
+def test_varrer_falha_com_modelo_que_nao_suporta_a_analise():
+    from hoop.micmodelos.micmodelos import Micmodelos
+    from hoop.micmodelos.protocolos import ModeloMecanico
+
+    class SoMecanico(Micmodelos, ModeloMecanico):
+        def homogeneizar(self, composito):
+            raise AssertionError('não deveria ser chamado')
+
+    base = Composito(FaseCondutividade.isotropica(1.0), FaseCondutividade.isotropica(10.0), fi=0)
+    with pytest.raises(ValueError, match='não suportado'):
+        varrer(base, SoMecanico(), lambda r: r.K11)
 
 
 def test_varrer_nao_importa_matplotlib():
     import ast
     import inspect
-    import homogenizacao.varredura as mod
+    import hoop.homogenizacao.varredura as mod
     arvore = ast.parse(inspect.getsource(mod))
     importados = {n.names[0].name for n in ast.walk(arvore) if isinstance(n, ast.Import)}
     importados |= {n.module for n in ast.walk(arvore) if isinstance(n, ast.ImportFrom)}
@@ -234,7 +251,7 @@ def test_tipo_de_homogeneizacao_desconhecido_gera_erro():
 
 
 def test_homogenizacao_nao_depende_de_matplotlib():
-    import homogenizacao.homogenizacao as mod
+    import hoop.homogenizacao.homogenizacao as mod
     assert not hasattr(mod, 'plt')
     assert not hasattr(mod.Homogenizacao, 'showFrac')
 

@@ -4,10 +4,10 @@ from dataclasses import replace
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from relatorio.relatorio_analise import (OpcoesRelatorio, contar_paginas, gerar_pdf,
-                                         linhas_tabela, nome_arquivo, titulo_padrao)
-from ui.calculo import calcular
-from ui.estado import EntradaComposito
+from hoop.ui.calculo import calcular
+from hoop.ui.entrada import EntradaComposito
+from hoop.ui.relatorio_analise import (OpcoesRelatorio, contar_paginas, gerar_pdf,
+                                       linhas_tabela, nome_arquivo, titulo_padrao)
 
 APP = os.path.join(os.path.dirname(__file__), '..', 'src', 'app.py')
 
@@ -104,7 +104,7 @@ def test_relatorio_sem_resultado_cai_para_dados():
 
 
 def _pagina_sem_resultado():
-    from ui.paginas import relatorio
+    from hoop.ui.paginas import relatorio
     relatorio.render()
 
 

@@ -3,8 +3,8 @@ import os
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from ui.calculo import calcular
-from ui.estado import EntradaComposito
+from hoop.ui.calculo import calcular
+from hoop.ui.entrada import EntradaComposito
 
 APP = os.path.join(os.path.dirname(__file__), '..', 'src', 'app.py')
 

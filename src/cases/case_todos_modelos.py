@@ -14,25 +14,23 @@ Modelos:
 Saída  : figuras individuais + gráfico combinado com todos os 7 modelos
          + relatorio_todos_modelos.pdf
 
-Executar de src/:
-    python cases/case_todos_modelos.py
+Executar da raiz do repositório (com o pacote instalado):
+    python src/cases/case_todos_modelos.py
 """
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 import matplotlib.pyplot as plt
 
-from cases._setup import criar_analise, MATERIAIS
-from desenho.desenho_mec import DesenhoMecanico
-from relatorio.relatorio import gerar_relatorio
+from hoop.exemplos import criar_analise, MATERIAIS
+from hoop.desenho.desenho_mec import DesenhoMecanico
+from hoop.relatorio.relatorio import gerar_relatorio
 
-from micmodelos.voigt import Voigt
-from micmodelos.reuss import Reuss
-from micmodelos.popovic import Popovic
-from micmodelos.dilute import DiluteSuspension
-from micmodelos.moritanaka import MoriTanaka
-from micmodelos.selfconsistent import SelfConsistent
-from micmodelos.gsc import GSC
+from hoop.micmodelos.voigt import Voigt
+from hoop.micmodelos.reuss import Reuss
+from hoop.micmodelos.popovic import Popovic
+from hoop.micmodelos.dilute import DiluteSuspension
+from hoop.micmodelos.moritanaka import MoriTanaka
+from hoop.micmodelos.selfconsistent import SelfConsistent
+from hoop.micmodelos.gsc import GSC
 
 # ── Configuração ────────────────────────────────────────────────────────────
 h = criar_analise(**MATERIAIS['polimero_aco'])

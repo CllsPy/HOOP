@@ -2,12 +2,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 
-from cases._setup import criar_analise, MATERIAIS
-from desenho.desenho_mec import DesenhoMecanico
-from mecanico.geometrias import GeometriaCilindro
-from mecanico.mecanico import Mecanico
-from micmodelos.gsc import GSC
-from micmodelos.moritanaka import MoriTanaka
+from hoop.exemplos import criar_analise, MATERIAIS
+from hoop.desenho.desenho_mec import DesenhoMecanico
+from hoop.mecanico.geometrias import GeometriaCilindro
+from hoop.mecanico.mecanico import Mecanico
+from hoop.micmodelos.gsc import GSC
+from hoop.micmodelos.moritanaka import MoriTanaka
 
 
 @pytest.fixture(autouse=True)

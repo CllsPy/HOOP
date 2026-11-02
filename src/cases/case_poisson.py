@@ -9,22 +9,20 @@ Estilo: 'poisson'  →  Y = vh (coef. Poisson homogeneizado)
 Modelos: GSC, Self-Consistent, Mori-Tanaka, Dilute Suspension
 Saída  : figuras individuais + gráfico combinado + relatorio_poisson.pdf
 
-Executar de src/:
-    python cases/case_poisson.py
+Executar da raiz do repositório (com o pacote instalado):
+    python src/cases/case_poisson.py
 """
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 import matplotlib.pyplot as plt
 
-from cases._setup import criar_analise, MATERIAIS
-from desenho.desenho_mec import DesenhoMecanico
-from relatorio.relatorio import gerar_relatorio
+from hoop.exemplos import criar_analise, MATERIAIS
+from hoop.desenho.desenho_mec import DesenhoMecanico
+from hoop.relatorio.relatorio import gerar_relatorio
 
-from micmodelos.gsc import GSC
-from micmodelos.selfconsistent import SelfConsistent
-from micmodelos.moritanaka import MoriTanaka
-from micmodelos.dilute import DiluteSuspension
+from hoop.micmodelos.gsc import GSC
+from hoop.micmodelos.selfconsistent import SelfConsistent
+from hoop.micmodelos.moritanaka import MoriTanaka
+from hoop.micmodelos.dilute import DiluteSuspension
 
 # ── Configuração ────────────────────────────────────────────────────────────
 h = criar_analise(**MATERIAIS['epoxy_vidro'])

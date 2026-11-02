@@ -15,18 +15,16 @@ Modelo : Mori-Tanaka
 Estilo : 'normalizar'  →  Y = Eh / Em
 Saída  : figuras individuais por sistema + gráfico combinado final
 
-Executar de src/:
-    python cases/case_contraste.py
+Executar da raiz do repositório (com o pacote instalado):
+    python src/cases/case_contraste.py
 """
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from cases._setup import criar_analise, MATERIAIS
-from desenho.desenho_mec import DesenhoMecanico
-from micmodelos.moritanaka import MoriTanaka
+from hoop.exemplos import criar_analise, MATERIAIS
+from hoop.desenho.desenho_mec import DesenhoMecanico
+from hoop.micmodelos.moritanaka import MoriTanaka
 
 SISTEMAS = [
     ('baixo_contraste', 'Ei/Em ≈ 1.1×',   '#4daf4a'),

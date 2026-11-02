@@ -17,18 +17,16 @@ Saída  : 3 figuras individuais (uma por geometria) + gráfico manual combinado
 NOTA: cilindro e disco usam tensor de Eshelby analítico — resultados
       aproximados; validar contra literatura antes de usar em produção.
 
-Executar de src/:
-    python cases/case_geometrias.py
+Executar da raiz do repositório (com o pacote instalado):
+    python src/cases/case_geometrias.py
 """
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from cases._setup import criar_analise, MATERIAIS
-from desenho.desenho_mec import DesenhoMecanico
-from micmodelos.moritanaka import MoriTanaka
+from hoop.exemplos import criar_analise, MATERIAIS
+from hoop.desenho.desenho_mec import DesenhoMecanico
+from hoop.micmodelos.moritanaka import MoriTanaka
 
 MAT = MATERIAIS['epoxy_vidro']
 GEOMETRIAS = ['esfera', 'cilindro', 'disco']

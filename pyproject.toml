@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hoop"
+version = "1.0.0"
+description = "Micromechanical homogenization of composite materials, with a Streamlit interface."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "seaborn",
+    "pandas",
+    "streamlit",
+    "Pillow",
+    "fpdf2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["hoop*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -5,9 +5,10 @@ import numpy as np
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from ui.calculo import CurvaModelo, Falha, ResultadoAnalise, calcular
-from ui.estado import EntradaComposito
-from ui.paginas.analise import csv_pt_br, tabela_completa, tabela_em_fi
+from hoop.ui.calculo import CurvaModelo, Falha, ResultadoAnalise, calcular
+from hoop.ui.entrada import EntradaComposito
+from hoop.ui.estado import Leitura
+from hoop.ui.paginas.analise import csv_pt_br, tabela_completa, tabela_em_fi
 
 APP = os.path.join(os.path.dirname(__file__), '..', 'src', 'app.py')
 
@@ -27,7 +28,7 @@ def abrir_analise(resultado, entrada=None):
 
 
 def pagina_sem_resultado():
-    from ui.paginas import analise
+    from hoop.ui.paginas import analise
     analise.render()
 
 
@@ -157,3 +158,31 @@ def test_tabela_completa_preenche_falha_com_nan(resultado):
     tabela = tabela_completa(com_falha_no_gsc(resultado), 'Eh')
     assert len(tabela) == 101
     assert np.isnan(tabela['GSC'].iloc[-1]) and not np.isnan(tabela['GSC'].iloc[86])
+
+
+@pytest.mark.parametrize('vi', [0.3, 0.0])
+def test_poisson_da_matriz_zero_nao_quebra_as_metricas_de_vh(vi):
+    resultado = calcular(replace(EntradaComposito(), vm=0.0, vi=vi, fi_max=0.5))
+    at = abrir_analise(resultado)
+    at.segmented_control(key='analise-grandeza').set_value('vh')
+    at.run()
+
+    assert not at.exception
+    assert not at.metric[0].delta
+
+
+def test_leitura_acima_do_fi_max_e_limitada(resultado):
+    menor = calcular(replace(EntradaComposito(), fi_max=0.5))
+    at = AppTest.from_file(APP, default_timeout=120)
+    at.session_state['hoop_resultado'] = menor
+    at.session_state['hoop_entrada'] = menor.entrada
+    at.session_state['hoop_etapa'] = 'analise'
+    at.session_state['hoop_leitura'] = replace(Leitura(), fi=0.8)
+    at.run()
+
+    assert not at.exception
+    assert at.text_input(key='analise-fi').value == '0,50'
+    assert at.session_state['hoop_leitura'].fi == 0.5
+
+    at.text_input(key='analise-fi').set_value('0,8').run()
+    assert at.session_state['hoop_leitura'].fi == 0.5
