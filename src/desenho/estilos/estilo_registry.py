@@ -30,7 +30,10 @@ class EstiloRegistry:
 from desenho.estilos.fixar_fracao import EstiloFixarFracao
 from desenho.estilos.poisson import EstiloPoisson
 from desenho.estilos.normalizar import EstiloNormalizar
+from desenho.estilos.condutividade import DIRECOES, EstiloCondutividade
 
 EstiloRegistry.registrar(EstiloFixarFracao())
 EstiloRegistry.registrar(EstiloPoisson())
 EstiloRegistry.registrar(EstiloNormalizar())
+for _direcao in DIRECOES:
+    EstiloRegistry.registrar(EstiloCondutividade(_direcao))

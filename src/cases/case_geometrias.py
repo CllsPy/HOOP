@@ -40,8 +40,7 @@ instancias = {}
 for geo in GEOMETRIAS:
     h = criar_analise(**MAT, geo=geo)
     d = DesenhoMecanico(estilo='normalizar')
-    d.desenha(h, modelo=MoriTanaka())
-    d.juntar_grafs(h)          # figura individual por geometria
+    d.desenha(h, modelo=MoriTanaka())   # figura individual
     instancias[geo] = (h, d)
 
 # ── Gráfico manual comparando as 3 geometrias ───────────────────────────────
@@ -49,7 +48,7 @@ sns.set_style('whitegrid')
 fig, ax = plt.subplots(figsize=(10, 5))
 
 for (geo, (h, d)), marcador, cor in zip(instancias.items(), MARCADORES, CORES):
-    xs, ys, _ = d.graphs[0]
+    xs, ys = d.curvas[0].xs, d.curvas[0].ys
     ax.plot(xs, ys, label=f'Mori-Tanaka ({geo})',
             marker=marcador, markersize=4, color=cor)
 

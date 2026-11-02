@@ -34,8 +34,8 @@ def _salvar_figura(fig) -> bytes:
 
 def gerar_grafico_combinado(dados: DadosRelatorio) -> bytes:
     """Recria o gráfico combinado (equivalente a juntar_grafs) e retorna bytes PNG."""
-    sns.set_style('whitegrid')
-    fig, ax = plt.subplots(figsize=(10, 5))
+    with sns.axes_style('whitegrid'):
+        fig, ax = plt.subplots(figsize=(10, 5))
 
     titulo, xlabel, ylabel = _titulo_eixos(dados.entrada.estilo)
 
@@ -57,12 +57,12 @@ def gerar_grafico_combinado(dados: DadosRelatorio) -> bytes:
 
 def gerar_graficos_individuais(dados: DadosRelatorio) -> List[Tuple[str, bytes]]:
     """Gera um PNG por modelo. Retorna lista de (nome, bytes_png)."""
-    sns.set_style('whitegrid')
     _, xlabel, ylabel = _titulo_eixos(dados.entrada.estilo)
     resultados = []
 
     for modelo in dados.modelos:
-        fig, ax = plt.subplots(figsize=(8, 4))
+        with sns.axes_style('whitegrid'):
+            fig, ax = plt.subplots(figsize=(8, 4))
         ax.plot(modelo.xs, modelo.ys, color='black', label=modelo.nome)
         ax.set_title(f'Model: {modelo.nome}')
         ax.set_xlabel(xlabel)

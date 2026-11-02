@@ -1,19 +1,17 @@
+import matplotlib.pyplot as plt
+
 from homogenizacao.homogenizacao import Homogenizacao
 from mecanico.mecanico import Mecanico
 from desenho.desenho_mec import DesenhoMecanico
 from relatorio.relatorio import gerar_relatorio
 
-from micmodelos.voigt import Voigt
-from micmodelos.reuss import Reuss
 from micmodelos.dilute import DiluteSuspension
 from micmodelos.moritanaka import MoriTanaka
 from micmodelos.selfconsistent import SelfConsistent
 from micmodelos.gsc import GSC
 
-import streamlit as st
-
 h1 = Homogenizacao()
-d = DesenhoMecanico(estilo='')
+d = DesenhoMecanico(estilo='fixar_fracao')
 
 h1.tipo = "global"
 h1.analise_tipo = "mecanica"
@@ -41,12 +39,12 @@ m2.geo = h1.analH.geo
 h1.matH.append(m1)
 h1.matH.append(m2)
 
-import matplotlib.pyplot as plt
-
 d.desenha(h1, modelo=GSC())
 d.desenha(h1, modelo=SelfConsistent())
 d.desenha(h1, modelo=MoriTanaka())
 d.desenha(h1, modelo=DiluteSuspension())
-d.juntar_grafs(h1)
+d.juntar_grafs()
 
 gerar_relatorio(h1, d, filename='relatorio.pdf')
+
+plt.show()

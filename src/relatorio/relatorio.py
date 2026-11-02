@@ -7,8 +7,8 @@ def gerar_relatorio(objH, d, filename: str = 'relatorio.pdf') -> None:
     """Gera um relatório PDF da análise mecânica realizada.
 
     Args:
-        objH:     instancia de Homogenizacao apos execucao de d.desenha()
-        d:        instancia de DesenhoMecanico apos execucao de d.desenha()
+        objH:     instancia de Homogenizacao usada em d.desenha()
+        d:        instancia de DesenhoMecanico com ao menos uma curva desenhada
         filename: caminho do arquivo PDF de saida (default: 'relatorio.pdf')
 
     Raises:
@@ -18,7 +18,6 @@ def gerar_relatorio(objH, d, filename: str = 'relatorio.pdf') -> None:
 
         d.desenha(h1, modelo=GSC())
         d.desenha(h1, modelo=MoriTanaka())
-        d.juntar_grafs(h1)
         gerar_relatorio(h1, d, filename='meu_relatorio.pdf')
     """
     if not d.graphs:

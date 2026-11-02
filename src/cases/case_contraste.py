@@ -42,8 +42,7 @@ instancias = {}
 for nome, label, _ in SISTEMAS:
     h = criar_analise(**MATERIAIS[nome])
     d = DesenhoMecanico(estilo='normalizar')
-    d.desenha(h, modelo=MoriTanaka())
-    d.juntar_grafs(h)          # figura individual
+    d.desenha(h, modelo=MoriTanaka())   # figura individual
     instancias[nome] = (h, d, label)
 
 # ── Gráfico combinado — todos os sistemas sobrepostos ───────────────────────
@@ -52,7 +51,7 @@ fig, ax = plt.subplots(figsize=(10, 5))
 
 for (nome, label, cor), marcador in zip(SISTEMAS, MARCADORES):
     h, d, _ = instancias[nome]
-    xs, ys, _ = d.graphs[0]
+    xs, ys = d.curvas[0].xs, d.curvas[0].ys
     ax.plot(xs, ys,
             label=f'{nome}  ({label})',
             marker=marcador, markersize=4, color=cor)

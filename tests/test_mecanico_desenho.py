@@ -15,8 +15,7 @@ APP = os.path.join(os.path.dirname(__file__), '..', 'src', 'app.py')
 
 
 @pytest.fixture(autouse=True)
-def sem_janelas(monkeypatch):
-    monkeypatch.setattr(plt, 'show', lambda *a, **k: None)
+def fechar_figuras():
     yield
     plt.close('all')
 
@@ -55,8 +54,8 @@ def test_juntar_grafs_sobrepoe_todos_os_modelos():
     d = DesenhoMecanico(estilo='normalizar')
     d.desenha(h, modelo=GSC())
     d.desenha(h, modelo=MoriTanaka())
-    d.juntar_grafs(h)
-    assert len(plt.gca().get_lines()) == 2
+    fig = d.juntar_grafs()
+    assert len(fig.axes[0].get_lines()) == 2
 
 
 def test_app_streamlit_desenha_graficos_apos_envio():

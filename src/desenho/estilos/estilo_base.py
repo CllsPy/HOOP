@@ -1,26 +1,41 @@
 from abc import ABC, abstractmethod
-from typing import Tuple
 
 
 class EstiloGrafico(ABC):
-    """Protocolo: sabe como coletar um ponto de dados e configurar os eixos.
+    """Um estilo tem duas responsabilidades separadas:
+
+    - extração de valor (``extrair``): lê a grandeza do eixo y de um modelo
+      já calculado; é o que ``homogenizacao.varredura.varrer`` recebe;
+    - configuração de eixo (``titulo``, ``rotulo_x``, ``rotulo_y`` e
+      ``configurar_eixos``): usada apenas pelo pacote ``desenho``.
+
     Para adicionar novo estilo: criar subclasse + EstiloRegistry.registrar().
     """
+
+    analise_tipo = 'mecanica'
+    rotulo_x = 'Fração Volumétrica de Inclusão (fi)'
 
     @property
     @abstractmethod
     def nome(self) -> str:
         """Identificador string do estilo (ex: 'fixar_fracao')."""
-        ...
+
+    @property
+    @abstractmethod
+    def titulo(self) -> str:
+        """Título do gráfico."""
+
+    @property
+    @abstractmethod
+    def rotulo_y(self) -> str:
+        """Rótulo do eixo y."""
 
     @abstractmethod
-    def coletar_ponto(self, objH, modelo, Fi: float) -> Tuple[float, float]:
-        """Executa objH.calc() para a fração Fi e retorna (x, y).
-        Não faz plot — apenas coleta dados.
-        """
-        ...
+    def extrair(self, modelo) -> float:
+        """Devolve a grandeza do eixo y lida de um modelo já calculado."""
 
-    @abstractmethod
-    def configurar_eixos(self, ax) -> None:
+    def configurar_eixos(self, ax, titulo: str = None) -> None:
         """Aplica título, xlabel e ylabel ao eixo matplotlib recebido."""
-        ...
+        ax.set_title(titulo or self.titulo)
+        ax.set_xlabel(self.rotulo_x)
+        ax.set_ylabel(self.rotulo_y)

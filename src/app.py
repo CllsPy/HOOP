@@ -104,21 +104,19 @@ if submit:
     h1.matH.append(m1)
     h1.matH.append(m2)
 
-    # desenha() abre a própria figura; plt.gcf() a recupera para o Streamlit
     for nome in models:
         try:
-            d.desenha(h1, MODELOS[nome]())
+            fig = d.desenha(h1, MODELOS[nome]())
         except (ValueError, RuntimeError, np.linalg.LinAlgError) as erro:
             st.error(f'{nome}: {erro}')
-            plt.close('all')
             continue
 
         with st.expander(f'Resposta: {nome}'):
-            st.pyplot(plt.gcf())
-        plt.close('all')
+            st.pyplot(fig)
+        plt.close(fig)
 
-    if len(d.graphs) > 1:
-        d.juntar_grafs(h1)
+    if len(d.curvas) > 1:
+        fig = d.juntar_grafs()
         st.subheader('Comparação dos modelos')
-        st.pyplot(plt.gcf())
-        plt.close('all')
+        st.pyplot(fig)
+        plt.close(fig)

@@ -15,6 +15,8 @@ Executar de src/:
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+import matplotlib.pyplot as plt
+
 from cases._setup import criar_analise, MATERIAIS
 from desenho.desenho_mec import DesenhoMecanico
 from relatorio.relatorio import gerar_relatorio
@@ -35,8 +37,10 @@ d.desenha(h, modelo=MoriTanaka())
 d.desenha(h, modelo=DiluteSuspension())
 
 # ── Gráfico combinado ────────────────────────────────────────────────────────
-d.juntar_grafs(h)
+d.juntar_grafs()
 
 # ── Relatório PDF ────────────────────────────────────────────────────────────
 gerar_relatorio(h, d, filename='relatorio_normalizar.pdf')
 print("Relatório salvo: relatorio_normalizar.pdf")
+
+plt.show()

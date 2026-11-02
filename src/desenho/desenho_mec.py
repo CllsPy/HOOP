@@ -1,147 +1,82 @@
-import pandas as pd
-import numpy as np
+from contextlib import ExitStack, contextmanager
+from typing import List, Optional, Tuple
+
 import matplotlib.pyplot as plt
 import seaborn as sns
+from matplotlib.figure import Figure
+
+from desenho.estilos.estilo_registry import EstiloRegistry
+from homogenizacao.varredura import Curva, varrer
+
+_MARCADORES = ['o', 's', '^', '*', 'x', 'D', 'p', 'h',
+               '+', '|', '.', ',', '1', '2', '3', '4',
+               '<', '>', 'v']
+
+LimitesY = Optional[Tuple[float, float]]
+
+
+@contextmanager
+def _visual_local():
+    """Aparência dos gráficos sem alterar o plt.rcParams global de quem chama."""
+    with ExitStack() as pilha:
+        pilha.enter_context(plt.rc_context({'font.size': 8, 'figure.figsize': (8, 4)}))
+        pilha.enter_context(sns.axes_style('whitegrid'))
+        pilha.enter_context(sns.color_palette('Paired'))
+        yield
 
 
 class DesenhoMecanico:
-    def __init__(self, estilo):
-        self.estilo = estilo
-        self.graphs = []
-        self.nome_modelos = []
-        self.instancias_modelos = []
+    """Desenha curvas propriedade homogeneizada vs. fração de inclusão.
 
-        sns.set_palette('Paired')
-        sns.set_style("whitegrid")
-        plt.rcParams['font.size'] = 5
-        plt.rcParams['figure.figsize'] = (8, 4)
+    O cálculo fica em ``homogenizacao.varredura.varrer``; esta classe só
+    desenha. Cada método cria e devolve a sua ``Figure`` (não chama
+    ``plt.show()``): scripts chamam ``plt.show()`` quando quiserem janelas.
+    """
 
-    def desenha(self, objH=None, modelo=None, stats=None, tresh_hold=None):
-        if not self.estilo:
-            self.estilo = 'fixar_fracao'
+    def __init__(self, estilo: str = 'fixar_fracao'):
+        self.estilo = estilo or 'fixar_fracao'
+        self._estilo = EstiloRegistry.obter(self.estilo)
+        self.curvas: List[Curva] = []
 
-        if objH.analise_tipo == 'mecanica':
-            objH.modH = modelo
-            label = f'{objH.modH.tipo}'
+    @property
+    def graphs(self) -> List[Tuple[List[float], List[float], str]]:
+        """Curvas já calculadas como tuplas (xs, ys, nome do modelo)."""
+        return [(c.xs, c.ys, c.nome) for c in self.curvas]
 
-            if len(objH.matH) == 2:
-                from desenho.estilos.estilo_registry import EstiloRegistry
-                estilo_obj = EstiloRegistry.obter(self.estilo)
+    def desenha(self, objH, modelo, limites_y: LimitesY = None) -> Figure:
+        """Varre fi de 0 até objH.fi (ou 1, se objH.fi == 0) e desenha a curva do modelo."""
+        self._exigir_tipo_de_analise(objH)
+        fi_max = objH.fi if objH.fi > 0 else 1.0
+        curva = varrer(objH, modelo, self._estilo.extrair,
+                       fi_max=fi_max, passos=max(1, round(fi_max * 100)))
+        self.curvas.append(curva)
 
-                _range = int(objH.fi * 100) if (objH.fi * 100) > 0 else 100
-                xs, ys = [], []
-                for i in range(0, _range + 1):
-                    x, y = estilo_obj.coletar_ponto(objH, modelo, i / 100)
-                    xs.append(x)
-                    ys.append(y)
+        with _visual_local():
+            fig, ax = plt.subplots()
+            ax.plot(curva.xs, curva.ys, label=curva.nome, color='black')
+            self._finalizar_eixos(ax, f'{self._estilo.titulo} - {curva.nome}', limites_y)
+        return fig
 
-                self.nome_modelos.append(label)
-                self.graphs.append((xs, ys, label))
+    def juntar_grafs(self, limites_y: LimitesY = None) -> Figure:
+        """Sobrepõe numa nova figura todas as curvas já desenhadas."""
+        with _visual_local():
+            fig, ax = plt.subplots()
+            for i, curva in enumerate(self.curvas):
+                ax.plot(curva.xs, curva.ys, label=curva.nome,
+                        marker=_MARCADORES[i % len(_MARCADORES)], markersize=5)
+            self._finalizar_eixos(ax, self._estilo.titulo, limites_y)
+        return fig
 
-                plt.figure()
-                estilo_obj.configurar_eixos(plt.gca())
-                sns.lineplot(x=xs, y=ys, label=label, color='black')
-                sns.despine(left=True)
-                if tresh_hold:
-                    plt.ylim(tresh_hold)
-                if self.estilo == 'poisson':
-                    plt.title(f'Coeficiente de Poisson - {label}')
-                    plt.xlabel('Fração Volumétrica de Inclusão')
-                    plt.ylabel('Coeficiente de Poisson Homogeneizado')
-                elif self.estilo == 'normalizar':
-                    plt.title(f'Model: {label}')
-                    plt.xlabel('fi')
-                    plt.ylabel('Eh/Em')
-                else:
-                    plt.title(f'Model: {label}')
-                    plt.xlabel('fi')
-                    plt.ylabel('Eh')
-                plt.legend()
-                plt.show()
+    def _exigir_tipo_de_analise(self, objH) -> None:
+        if objH.analH.analise_type != self._estilo.analise_tipo:
+            raise ValueError(
+                f"O estilo '{self.estilo}' exige análise '{self._estilo.analise_tipo}', "
+                f"mas a análise é '{objH.analH.analise_type}'."
+            )
 
-                if stats == "True":
-                    label_kde = f'Kde: {objH.modH.tipo}'
-                    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 10))
-                    sns.scatterplot(x=xs, y=ys, ax=axes[0], label=label)
-                    sns.kdeplot(ys, ax=axes[1], fill='True', label=label_kde, color='orange')
-                    plt.tight_layout(pad=1.08)
-                    sns.despine(left=True)
-                    plt.legend()
-
-            elif len(objH.matH) == 3:
-                self.E = []
-                self.x = []
-                _range = int(objH.fi * 100) if objH.fi * 100 > 0 else 100
-
-                for i in range(0, _range + 1):
-                    Fi = i / 100
-                    if self.estilo == 'fixar_fracao_n':
-                        self.n_fases(objH, modelo, Fi)
-                        plt.title('Módulo E. Homogeinizado vs. FI')
-                        plt.xlabel('Fração Volumétrica de Inclusão')
-                        plt.ylabel('Módulo de Elásticidade Homogeinizado')
-
-                if self.estilo == "fixar_fracao_n":
-                    sns.lineplot(x=self.x, y=self.E, label=label)
-                    sns.despine(left=True)
-                    self.graphs.append((self.x, self.E, label))
-
-    def n_fases(self, objH, modelo, Fi):
-        fiC, fmC = (Fi, Fi - 1)
-        objH.analH.fi, objH.analH.fr, objH.analH.fm = (fiC, objH.analH.fr, fmC)
-        objH.calc()
-        self.E.append(objH.modH.Eh)
-        self.x.append(Fi)
-
-    def juntar_grafs(self, objH, estilo=False, stats=False, tresh_hold=None):
-        plt.figure()
-        if self.estilo == 'poisson':
-            plt.title('Coeficiente de Poisson Homogeneizado')
-            plt.xlabel('Fração Volumétrica de Inclusão')
-            plt.ylabel('Coeficiente de Poisson Homogeneizado')
-        elif self.estilo == 'normalizar':
-            plt.title('Models')
-            plt.xlabel('fi')
-            plt.ylabel('Eh/Em')
-        else:
-            plt.title('Models')
-            plt.xlabel('fi')
-            plt.ylabel('Eh')
-
-        marcadores = ['o', 's', '^', '*', 'x', 'D', 'p', 'h',
-                      '+', '|', '.', ',', '1', '2', '3', '4',
-                      '<', '>', 'v']
-        for i, graph in enumerate(self.graphs):
-            x, y, label = graph
-            plt.plot(x, y, label=label, marker=marcadores[i % len(marcadores)], markersize=5)
-            plt.legend(loc='best')
-            sns.despine(left=True)
-            plt.ylim(tresh_hold)
-
-        plt.show()
-
-        if stats == "True":
-            for graph in self.graphs:
-                x, y, label = graph
-                sns.kdeplot(x=y, label=label, alpha=.5, fill=True, bw_method=0.1)
-                plt.legend()
-                plt.title("Kernel Density")
-                sns.despine(left=True)
-            plt.show()
-
-    def hist(self, objH, modelos: list):
-        kde_values = []
-        names = []
-        for modelo in modelos:
-            objH.modH = modelo
-            objH.calc()
-            value = float(objH.modH.Eh)
-            kde_values.append(value)
-            name = objH.modH.tipo
-            names.append(name)
-
-        custom_color = ['#033E8C', '#0F5FA6', '#8EBF6B', '#CCD96A', '#04B2D9']
-        data = {'Modelos': kde_values}
-        df = pd.DataFrame(data, index=names)
-        sns.heatmap(data=df, fmt='.4f', cbar_kws={'orientation': 'horizontal'}, annot=True, cmap=custom_color)
-        plt.show()
+    def _finalizar_eixos(self, ax, titulo: str, limites_y: LimitesY) -> None:
+        self._estilo.configurar_eixos(ax, titulo)
+        if limites_y is not None:
+            ax.set_ylim(limites_y)
+        ax.legend(loc='best')
+        sns.despine(ax=ax, left=True)

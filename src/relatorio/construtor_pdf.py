@@ -2,6 +2,7 @@ import io
 from typing import List, Tuple
 
 from fpdf import FPDF
+from fpdf.enums import XPos, YPos
 
 from relatorio.extrator import DadosRelatorio
 
@@ -34,7 +35,7 @@ class _PDF(FPDF):
     def titulo_secao(self, texto: str):
         self.set_font('Helvetica', 'B', 11)
         self.set_text_color(*_COR_SECAO)
-        self.cell(0, 7, texto, ln=True)
+        self.cell(0, 7, texto, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         self.set_text_color(0, 0, 0)
         self.set_draw_color(*_COR_SECAO)
         self.line(self.l_margin, self.get_y(), self.w - self.r_margin, self.get_y())
@@ -50,7 +51,7 @@ def _linha_tabela(pdf: _PDF, col1: str, col2: str, par: bool):
         fill = False
     pdf.set_font('Helvetica', '', 9)
     pdf.cell(90, 7, col1, border=1, fill=fill)
-    pdf.cell(80, 7, col2, border=1, fill=fill, ln=True)
+    pdf.cell(80, 7, col2, border=1, fill=fill, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
 
 def _secao_dados_entrada(pdf: _PDF, dados: DadosRelatorio):
@@ -62,7 +63,7 @@ def _secao_dados_entrada(pdf: _PDF, dados: DadosRelatorio):
     pdf.set_font('Helvetica', 'B', 9)
     pdf.set_text_color(*_COR_HEADER_TXT)
     pdf.cell(90, 7, 'Parametro', border=1, fill=True)
-    pdf.cell(80, 7, 'Valor', border=1, fill=True, ln=True)
+    pdf.cell(80, 7, 'Valor', border=1, fill=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.set_text_color(0, 0, 0)
 
     linhas = [
@@ -102,7 +103,7 @@ def _secao_resultados_por_modelo(pdf: _PDF,
             pdf.add_page()
 
         pdf.set_font('Helvetica', 'B', 10)
-        pdf.cell(0, 7, f'Modelo: {modelo.nome}', ln=True)
+        pdf.cell(0, 7, f'Modelo: {modelo.nome}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.ln(1)
 
         # Tabela fi=0.5 e fi=max
@@ -117,14 +118,14 @@ def _secao_resultados_por_modelo(pdf: _PDF,
         pdf.set_text_color(*_COR_HEADER_TXT)
         pdf.cell(60, 7, 'Grandeza',        border=1, fill=True)
         pdf.cell(55, 7, f'fi = {fi_meio:.2f}', border=1, fill=True)
-        pdf.cell(55, 7, f'fi = {fi_max:.2f} (max)', border=1, fill=True, ln=True)
+        pdf.cell(55, 7, f'fi = {fi_max:.2f} (max)', border=1, fill=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.set_text_color(0, 0, 0)
 
         pdf.set_font('Helvetica', '', 9)
         pdf.set_fill_color(*_COR_ROW_ALT)
         pdf.cell(60, 7, modelo.y_label, border=1, fill=True)
         pdf.cell(55, 7, f'{y_meio:.6f}',  border=1, fill=True)
-        pdf.cell(55, 7, f'{y_max:.6f}',   border=1, fill=True, ln=True)
+        pdf.cell(55, 7, f'{y_max:.6f}',   border=1, fill=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.ln(3)
 
         # Gráfico individual centralizado
