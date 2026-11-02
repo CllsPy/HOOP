@@ -1,9 +1,10 @@
 class Materiais:
-    # SuperClasse de Materiais
+    """Superclasse dos materiais (fases) de um compósito."""
+
     def __init__(self):
         super().__init__()
-        self.id = None   # Identificação dos Materiais [1] Matriz [2] Inclusões [3] Interface
-        self.tipo = None  # tipo of materials [mechanico], [condutividade]
-        self.geo = None  # geometric of inclusions [esfera], [cilindro], [disco]
-        self.fk = None   # fração volumétrica da Análise
-        self.matTipo = None  # Tipo de material [isotropico]
+        self.id = None       # Identificação da fase (em matH: [0] matriz, [1] inclusão, [2] terceira fase)
+        self.tipo = None     # Tipo de análise: 'mecanico' ou 'condutividade'
+        self.geo = None      # Geometria das inclusões: 'esfera', 'cilindro' ou 'disco'
+        self.fk = None       # Fração volumétrica da fase
+        self.matTipo = None  # Simetria do material: 'isotropico'
