@@ -7,6 +7,7 @@ class SelfConsistent(Micmodelos):
         super().__init__()
         self.tol = 1e-8
         self.N3 = 10
+        self.max_iter = 500
         self.tipo = 'Self-Consistent'
         self.K11 = None
         self.K22 = None
@@ -44,7 +45,11 @@ class SelfConsistent(Micmodelos):
 
             while N3 > tol:
 
-                C = Cm + fi * (Ci - Cm) @ np.linalg.inv(I - (S @ (np.linalg.inv(Co))) @ (Co - Ci))
+                # Forma simétrica C = (Σ fr Cr Ar)(Σ fr Ar)^-1: mesmo ponto fixo que
+                # Cm + fi (Ci - Cm) Ai, mas converge também para inclusões mais flexíveis que a matriz
+                Ai = np.linalg.inv(I + S @ np.linalg.inv(Co) @ (Ci - Co))
+                Am = np.linalg.inv(I + S @ np.linalg.inv(Co) @ (Cm - Co))
+                C = (fi * Ci @ Ai + (1 - fi) * Cm @ Am) @ np.linalg.inv(fi * Ai + (1 - fi) * Am)
 
                 E = (-2 * C[2, 1] ** 2 + C[2, 1] * C[2, 2] + C[2, 2] ** 2) / (C[2, 1] + C[2, 2])
                 v = C[2, 1] / (C[2, 1] + C[2, 2])
@@ -53,7 +58,7 @@ class SelfConsistent(Micmodelos):
 
                 N1 = E
                 N2 = (-2 * Co[2, 1] ** 2 + Co[2, 1] * Co[2, 2] + Co[2, 2] ** 2) / (Co[2, 1] + Co[2, 2])
-                N3 = (np.absolute(N1)-np.absolute(N2))/np.absolute(N2)
+                N3 = np.absolute(np.absolute(N1) - np.absolute(N2)) / np.absolute(N2)
 
                 #N1 = np.linalg.norm(C)
                 #N2 = np.linalg.norm(Co)
@@ -62,6 +67,10 @@ class SelfConsistent(Micmodelos):
 
                 Co = C
                 nite += 1
+                if N3 > tol and nite >= self.max_iter:
+                    raise RuntimeError(
+                        f"Self-Consistent não convergiu em {self.max_iter} iterações (erro={N3:.3g})."
+                    )
 
             self.Eh = (-2 * C[0, 1] ** 2 + C[0, 1] * C[0, 0] + C[0, 0] ** 2) / (C[0, 1] + C[0, 0])
             self.vh = C[0, 1] / (C[0, 1] + C[0, 0])

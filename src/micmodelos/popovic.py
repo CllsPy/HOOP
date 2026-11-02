@@ -1,3 +1,4 @@
+import numpy as np
 from micmodelos.micmodelos import Micmodelos
 
 
@@ -46,7 +47,7 @@ class Popovic(Micmodelos):
             Ci = objH.matH[1].L
 
             V = fi * Ci + (1 - fi) * Cm
-            R = ((fi * (Ci ** -1)) + ((1 - fi) * (Cm ** -1))) ** -1
+            R = np.linalg.inv(fi * np.linalg.inv(Ci) + (1 - fi) * np.linalg.inv(Cm))
             C = (1 / 2) * (R + V)
 
             self.Eh = (-2 * C[0, 1] ** 2 + C[0, 1] * C[0, 0] + C[0, 0] ** 2) / (C[0, 1] + C[0, 0])
@@ -70,7 +71,7 @@ class Popovic(Micmodelos):
             Ki = objH.matH[1].K
 
             V = fi * Ki + (1 - fi) * Km
-            R = ((fi * (Ki ** -1)) + ((1 - fi) * (Km ** -1))) ** -1
+            R = np.linalg.inv(fi * np.linalg.inv(Ki) + (1 - fi) * np.linalg.inv(Km))
             K = (1 / 2) * (R + V)
 
             self.kh = K

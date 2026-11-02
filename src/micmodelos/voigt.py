@@ -71,19 +71,22 @@ class Voigt(Micmodelos):
             self.K22 =  self.kh[1,1]
             self.K33 = self.kh[2,2]
 
-        elif objH.analH.tipo == 'dosagem':
+        elif objH.analH.analise_type == 'dosagem':  # <------- FALTA TESTAR =======================
             Em = objH.matH[0].E
             vm = objH.matH[0].v
             Cm = objH.matH[0].L
             Ei = objH.matH[1].E
             vi = objH.matH[1].v
-            Ci = objH.materiais[1].L
+            Ci = objH.matH[1].L
 
             objH.matH[0].E = objH.Mix.fckmodels.Ec
             objH.matH[0].v = 0.2055
-            aux = objH.matH[0].tensorL()
+            objH.matH[0].tensorL()
 
-            C = aux.L
+            C = objH.matH[0].L
 
             F = (C - Cm) * (Ci - Cm) ** (-1)
             self.fi = np.trace(F) / 6
+
+        else:
+            raise ValueError(f"Voigt: tipo de análise não suportado: '{objH.analH.analise_type}'.")

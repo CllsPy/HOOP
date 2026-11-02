@@ -377,6 +377,16 @@ class MyModel(Micmodelos):
 ```
 
 
+## Running Tests
+
+```bash
+pip install pytest
+pytest tests
+```
+
+The suite checks each model against the Voigt/Reuss bounds and the pure-phase limits, validates Self-Consistent against a direct solution of Hill's equations, and drives the Streamlit app with `streamlit.testing`.
+
+
 ## Contributing
 
 Contributions are welcome. Please open an issue first to discuss what you'd like to change.

@@ -98,7 +98,7 @@ class MoriTanaka(Micmodelos):
             self.K33 = self.kh[2, 2]
 
 
-        elif analH.analise_type == 'dosage':
+        elif objH.analH.analise_type == 'dosage':  # <------- FALTA TESTAR =======================
             objH.mix = objH.mix.calc()
 
             S = objH.matH[0].S
@@ -112,15 +112,15 @@ class MoriTanaka(Micmodelos):
             objH.matH[0].E = objH.mix.fckmodels.Ec
             objH.matH[0].v = 0.2055
 
-            aux = objH.matH[0].tensorL()
-            C = aux.L
+            objH.matH[0].tensorL()
+            C = objH.matH[0].L
 
             I = np.eye(6)
             X = ((Cm - Ci) @ np.linalg.inv(Cm) - S)
             F = (C @ I - Cm @ I) @ np.linalg.inv(Cm @ (S - I) @ np.linalg.inv(X) - C @ S @ np.linalg.inv(X))
-            mod.fi = np.trace(F) / 6
+            self.fi = np.trace(F) / 6
 
-        elif analH_type == 'termomechanics':
+        elif objH.analH.analise_type == 'termomechanics':  # <------- FALTA TESTAR =======================
             fi = objH.analH.fi
             S = objH.matH[0].S
             Em = objH.matH[0].E
@@ -138,8 +138,8 @@ class MoriTanaka(Micmodelos):
             C = Cm @ (I + fi * (S - I) @ np.linalg.inv(((Cm - Ci) @ np.linalg.inv(Cm) - S))) @ np.linalg.inv(
                 I + fi * S @ np.linalg.inv(((Cm - Ci) @ np.linalg.inv(Cm) - S)))
 
-            mod.Eh = (-2 * C[0, 1] ** 2 + C[0, 1] * C[0, 0] + C[0, 0] ** 2) / (C[0, 1] + C[0, 0])
-            mod.vh = C[0, 1] / (C[0, 1] + C[0, 0])
+            self.Eh = (-2 * C[0, 1] ** 2 + C[0, 1] * C[0, 0] + C[0, 0] ** 2) / (C[0, 1] + C[0, 0])
+            self.vh = C[0, 1] / (C[0, 1] + C[0, 0])
 
             Bm = objH.analH.tensorB(1 - fi, Cm, Ci, C)
             Bi = objH.analH.tensorB(fi, Ci, Cm, C)
@@ -148,14 +148,17 @@ class MoriTanaka(Micmodelos):
             am = (1 - fi) * alpha_m * Bm
             alpha = ai + am
 
-            mod.C = C
-            mod.Ci = Ci
-            mod.Cm = Cm
-            mod.fi = fi
-            mod.Em = Em
-            mod.vm = vm
-            mod.Ei = Ei
-            mod.vi = vi
-            mod.Alpha = alpha
-            mod.Alphai = ai
-            mod.Alpham = am
+            self.C = C
+            self.Ci = Ci
+            self.Cm = Cm
+            self.fi = fi
+            self.Em = Em
+            self.vm = vm
+            self.Ei = Ei
+            self.vi = vi
+            self.Alpha = alpha
+            self.Alphai = ai
+            self.Alpham = am
+
+        else:
+            raise ValueError(f"Mori-Tanaka: tipo de análise não suportado: '{objH.analH.analise_type}'.")

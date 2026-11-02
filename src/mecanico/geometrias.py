@@ -28,10 +28,13 @@ class GeometriaEsfera(GeometriaEshelby):
 class GeometriaCilindro(GeometriaEshelby):
     nome = 'cilindro'
 
+    def __init__(self, razao_aspecto: float = 0.03 / 100):
+        self.razao_aspecto = razao_aspecto  # diâmetro / comprimento da fibra
+
     def calcular_S(self, E: float, v: float,
                    P: np.ndarray, L: np.ndarray) -> np.ndarray:
         S = np.zeros((6, 6))
-        k = 0.03 / 100
+        k = self.razao_aspecto
         S[0, 0] = ((2.0 - v) / (1.0 - v)) * (k ** 2) * (
             math.log(2.0 / k) - ((5.0 - 2.0 * v) / (4.0 - 2.0 * v)))
         S[0, 1] = -((1.0 - 2.0 * v) / (2.0 - 2.0 * v)) * (k ** 2) * (

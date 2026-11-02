@@ -75,10 +75,12 @@ class GSC(Micmodelos, ModeloMecanico, ModeloCondutividade):
         K = (Km + fi * (Ki - Km) * (3 * Km + 4 * Gm) / (3 * Km + 4 * Gm + 3 * (1 - fi) * (Ki - Km)))
 
         delta = (2 * B / Gm) ** 2 - 4 * (A * D / Gm ** 2)
-        if delta > 0:
-            G = (-(2 * B / Gm) + np.sqrt(delta)) / (2 * (A / Gm ** 2))
-        elif delta == 0:
-            G = -(2 * B / Gm) / (2 * (A / Gm ** 2))
+        if delta < 0:
+            raise ValueError(
+                f"GSC: equação quadrática em G sem raiz real (delta={delta:.4g}) "
+                f"para fi={fi}, Em={Em}, vm={vm}, Ei={Ei}, vi={vi}."
+            )
+        G = (-(2 * B / Gm) + np.sqrt(delta)) / (2 * (A / Gm ** 2))
 
         E = 9 * K * G / (G + 3 * K)
         self.Eh = E

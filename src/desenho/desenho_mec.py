@@ -30,7 +30,7 @@ class DesenhoMecanico:
 
                 _range = int(objH.fi * 100) if (objH.fi * 100) > 0 else 100
                 xs, ys = [], []
-                for i in range(0, _range):
+                for i in range(0, _range + 1):
                     x, y = estilo_obj.coletar_ponto(objH, modelo, i / 100)
                     xs.append(x)
                     ys.append(y)
@@ -73,7 +73,7 @@ class DesenhoMecanico:
                 self.x = []
                 _range = int(objH.fi * 100) if objH.fi * 100 > 0 else 100
 
-                for i in range(0, _range):
+                for i in range(0, _range + 1):
                     Fi = i / 100
                     if self.estilo == 'fixar_fracao_n':
                         self.n_fases(objH, modelo, Fi)

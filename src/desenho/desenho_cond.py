@@ -43,7 +43,7 @@ class Desenho_Condutividade:
             if len(objH.matH) == 2:
                 _range = int(objH.fi * 100) if objH.fi * 100 > 0 else 100
 
-                for i in range(0, _range):
+                for i in range(0, _range + 1):
                     Fi = i / 100
                     if self.estilo == 'fixar_fracao':
                         self.fixar_fi(objH, modelo, Fi, direcao)
@@ -74,7 +74,7 @@ class Desenho_Condutividade:
             elif len(objH.matH) == 3:
                     _range = int(objH.fi * 100) if objH.fi * 100 > 0 else 100
 
-                    for i in range(0, _range):
+                    for i in range(0, _range + 1):
                         Fi = i / 100
 
                         if self.estilo == 'fixar_fracao_3':

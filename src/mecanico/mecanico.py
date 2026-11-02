@@ -23,7 +23,7 @@ class Mecanico (Materiais):
         self.B = None    # Tensor Concenrtação de Deformação
 
 
-    def tipo(self): #<------- FUNCIONANDO =======================
+    def definir_tipo(self): #<------- FUNCIONANDO =======================
         self.matTipo = 'isotropico'
 
     def calc(self): #<------- FUNCIONANDO =======================
