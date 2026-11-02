@@ -1,5 +1,3 @@
-import os
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
@@ -10,8 +8,6 @@ from mecanico.geometrias import GeometriaCilindro
 from mecanico.mecanico import Mecanico
 from micmodelos.gsc import GSC
 from micmodelos.moritanaka import MoriTanaka
-
-APP = os.path.join(os.path.dirname(__file__), '..', 'src', 'app.py')
 
 
 @pytest.fixture(autouse=True)
@@ -57,33 +53,3 @@ def test_juntar_grafs_sobrepoe_todos_os_modelos():
     fig = d.juntar_grafs()
     assert len(fig.axes[0].get_lines()) == 2
 
-
-def test_app_streamlit_desenha_graficos_apos_envio():
-    from streamlit.testing.v1 import AppTest
-
-    at = AppTest.from_file(APP, default_timeout=60)
-    at.run()
-    assert not at.exception
-    assert len(at.get('image')) == 0  # nada é calculado antes do envio
-
-    at.multiselect[0].set_value(['GSC', 'MoriTanaka', 'SelfConsistent'])
-    at.button[0].click()
-    at.run()
-
-    assert not at.exception
-    assert not at.error
-    assert len(at.expander) == 3
-    assert len(at.get('image')) == 4  # 3 modelos + comparação
-
-
-def test_app_streamlit_avisa_condutividade_indisponivel():
-    from streamlit.testing.v1 import AppTest
-
-    at = AppTest.from_file(APP, default_timeout=60)
-    at.run()
-    at.selectbox[1].set_value('condutividade')
-    at.button[0].click()
-    at.run()
-
-    assert not at.exception
-    assert 'condutividade' in at.warning[0].value

@@ -1,0 +1,18 @@
+[theme]
+base = "light"
+primaryColor = "#0B6E6E"
+backgroundColor = "#F6F7F5"
+secondaryBackgroundColor = "#ECEFEC"
+textColor = "#142120"
+linkColor = "#0B6E6E"
+borderColor = "#D5DBD8"
+font = "'Source Sans 3':https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600&display=swap, sans-serif"
+headingFont = "Archivo:https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&display=swap, sans-serif"
+codeFont = "'IBM Plex Mono':https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&display=swap, monospace"
+headingFontWeights = [650, 650, 600, 600, 600, 600]
+baseRadius = "6px"
+metricValueFontSize = "28px"
+showSidebarBorder = true
+
+[client]
+toolbarMode = "minimal"
