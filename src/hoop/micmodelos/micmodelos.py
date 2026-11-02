@@ -1,4 +1,7 @@
+import math
 from abc import ABC
+
+import numpy as np
 
 from hoop.mecanico.tensores import propriedades_isotropicas
 from hoop.micmodelos.protocolos import ModeloMecanico, ModeloCondutividade
@@ -69,10 +72,34 @@ class Micmodelos(ABC):
 
     @staticmethod
     def _resultado_do_tensor(composito, C) -> ResultadoMecanico:
-        """ResultadoMecanico com E, v, K e G lidos do tensor homogeneizado C."""
+        """ResultadoMecanico com E, v, K e G lidos do tensor homogeneizado C.
+
+        ValueError se o tensor não for finito ou se E sair não positivo: o
+        modelo saiu do seu domínio e o número não tem sentido físico.
+        """
         Eh, vh, kh, Gh = propriedades_isotropicas(C)
+        if not (np.all(np.isfinite(C)) and math.isfinite(Eh) and math.isfinite(vh)):
+            raise ValueError(
+                f"O modelo devolveu um valor não finito em fi = {composito.fi:g}: estes dados "
+                "estão fora do domínio dele. Reduza a fração ou use outro modelo."
+            )
+        if Eh <= 0:
+            raise ValueError(
+                f"O modelo prevê E nulo ou negativo em fi = {composito.fi:g} "
+                f"(Eh = {Eh:.4g}), o que não tem sentido físico. Reduza a fração ou use "
+                "Mori-Tanaka."
+            )
         return ResultadoMecanico(Eh=Eh, vh=vh, kh=kh, Gh=Gh,
                                  Em=composito.matriz.E, fi=composito.fi, C=C)
+
+    @staticmethod
+    def _exigir_inclusao_com_rigidez(composito, nome: str, motivo: str) -> None:
+        """ValueError se a inclusão for um poro (E = 0), que ``nome`` não trata."""
+        if getattr(composito.inclusao, 'vazio', False):
+            raise ValueError(
+                f"{nome} não se aplica a poros (E = 0): {motivo}. "
+                "Use Mori-Tanaka no nível dos poros."
+            )
 
     @staticmethod
     def _resultado_condutividade(composito, kh) -> ResultadoCondutividade:

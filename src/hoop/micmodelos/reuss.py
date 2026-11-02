@@ -17,6 +17,7 @@ class Reuss(Micmodelos, ModeloMecanico, ModeloCondutividade):
         self.tipo = 'Reuss'
 
     def homogeneizar(self, composito):
+        self._exigir_inclusao_com_rigidez(composito, 'Reuss', 'o resultado é nulo')
         C = media_reuss(composito.fi, composito.inclusao.L, composito.matriz.L)
         return self._resultado_do_tensor(composito, C)
 

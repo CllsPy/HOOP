@@ -59,12 +59,20 @@ The interface is a three-step flow, shown in the sidebar:
 
 The Analysis and Report steps unlock after the first calculation. If the data changes afterwards, both steps warn you to recalculate.
 
+A segmented control at the top of Dados switches between **Duas fases** (two phases, the default flow above) and **Concreto multiescala** (multiscale concrete). In the concrete mode:
+
+1. **Dados:** cards for cement paste, fine aggregate, its ITZ (ZTI-2), coarse aggregate and its ITZ (ZTI-1), each with E (MPa), ν and volume fraction in the concrete (%), plus pores (% of solids) and an optional experimental E. Choose **Com ZTI** (Quatro fases and/or Múltiplas fases) or **Sem ZTI** (any two-phase model, with Mori-Tanaka or the same model for the pores). Defaults are Li et al. (2019), restorable with "Restaurar valores da tese". A preview shows the corrected fractions of each level.
+2. **Análise:** E of the concrete and the error against the experimental value, E per level (one line per model, dashed experimental reference), a Table 6/8-style table and E, ν, K, G per level (CSV). A model that fails (e.g. Reuss in the pores) shows an error and keeps the levels it reached; the others are unaffected.
+3. **Relatório:** PDF with phases, fractions per level, the chart, the results table and the error.
+
+Each mode keeps its own input and result.
+
 
 ## Programmatic API
 
 ### Stateless homogenization
 
-Describe the problem as an immutable `Composito` and ask a model for a result. Phases and composites are frozen dataclasses that validate on creation (E > 0, -1 < ν < 0.5, 0 ≤ fi ≤ 1, known geometry). Models keep no state between calls.
+Describe the problem as an immutable `Composito` and ask a model for a result. Phases and composites are frozen dataclasses that validate on creation (E > 0 except for pores built with `FaseMecanica.poro()`, -1 < ν < 0.5, 0 ≤ fi ≤ 1, known geometry). Models keep no state between calls.
 
 ```python
 from dataclasses import replace
@@ -98,6 +106,26 @@ from hoop.micmodelos.gsc import GSC
 
 curva = varrer(c, GSC(), extrair=lambda r: r.Eh / r.Em, fi_max=0.6, passos=60)
 ```
+
+### Concreto multiescala (multiscale concrete)
+
+Concrete is homogenized in levels, as in Silva (2022), Section 3.1: cement paste + fine aggregate (mortar), mortar + coarse aggregate, then concrete + pores. With interfacial transition zones (ITZ/ZTI) each aggregate is coated by its ZTI and a three-phase model is used (`QuatroFases`, Li et al. 1999, or `MultiplasFases`, Shi et al. 2020); without ZTI any two-phase model works. Phase fractions are given in the concrete and corrected per level automatically. Pores are a zero-stiffness phase created only by `FaseMecanica.poro()` and enter the last level with Mori-Tanaka by default.
+
+```python
+from hoop.homogenizacao.multiescala import FasesConcreto, calcular_concreto
+from hoop.micmodelos.moritanaka import MoriTanaka
+from hoop.micmodelos.quatrofases import QuatroFases
+
+fases = FasesConcreto.li_2019()                  # Table 3 of the thesis, E in GPa
+r = calcular_concreto(fases, QuatroFases())      # with ZTI, 3 levels
+for nivel in r.niveis:
+    print(nivel.nome, dict(zip(nivel.fases, nivel.fracoes)), round(nivel.resultado.Eh, 3))
+print(r.Eh, r.erro_relativo)                     # 34.645 GPa, +0.42 % against 34.50 GPa
+
+calcular_concreto(fases, MoriTanaka(), com_zti=False).Eh   # 45.671 GPa (Table 6)
+```
+
+Reuss and Popovic refuse pores (`ValueError`): with E = 0 their result is null or singular. A pore can never be a matrix.
 
 ### Plotting
 
@@ -242,10 +270,13 @@ src/
         ├── relatorio_analise.py  # gerar_pdf(resultado, opcoes) → bytes (interface report)
         ├── pdf_hoop.py           # PaginaHOOP: fpdf2 page with the design system
         ├── calculo.py            # MODELOS catalog, calcular() → ResultadoAnalise (no Streamlit)
+        ├── concreto.py           # EntradaConcreto, validation, level preview, calcular_concreto_ui (no Streamlit)
+        ├── relatorio_multiescala.py  # gerar_pdf_concreto(resultado, opcoes) → bytes
         ├── graficos.py           # interface figures
         ├── tema.py               # colors, series, glyphs, fonts, CSS
         ├── componentes.py        # reusable widgets
         └── paginas/              # dados.py, analise.py, relatorio.py: render()
+                                  # dados_concreto.py, analise_concreto.py, relatorio_concreto.py
 tests/                            # pytest suite
 ```
 
@@ -260,7 +291,7 @@ tests/                            # pytest suite
 
 ## Micromechanical Models
 
-All seven models support both mechanical and conductivity analysis through the API.
+The seven two-phase models support both mechanical and conductivity analysis through the API. The three-phase models take a `CompositoRevestido(matriz, inclusao, revestimento, fi, fr)`.
 
 | Model | Class | Family | Notes |
 |---|---|---|---|
@@ -271,6 +302,8 @@ All seven models support both mechanical and conductivity analysis through the A
 | Self-Consistent | `SelfConsistent` | Self-consistent | Iterative. Raises `RuntimeError` if it does not converge |
 | GSC | `GSC` | Self-consistent | Composite sphere assemblage (Christensen and Lo) |
 | Popovic | `Popovic` | Average | Arithmetic mean of Voigt and Reuss |
+| Quatro-Fases | `QuatroFases` | Three-phase | Coated spheres: GSC(coating + inclusion), then GSC(matrix + core). Mechanical only |
+| Múltiplas-Fases | `MultiplasFases` | Three-phase | Coated inclusions, double-inclusion tensors (Shi et al., 2020), as in the author's code. Requires fr / fi ≤ 1. Mechanical only |
 
 **Mechanical equations**
 
@@ -328,7 +361,8 @@ The interface and the PDF share one set of tokens, defined in `src/hoop/ui/tema.
 | `line` | `#D5DBD8` | borders |
 | `phase-matrix` / `phase-inclusion` | `#3E6F8A` / `#A85A0C` | matrix and inclusion labels |
 | `success` / `warning` / `danger` | `#2E7D4F` / `#9A5800` / `#B3261E` | states |
-| series | bounds `#6E7C7A`, SC `#C2620F`, GSC `#2F55C8`, Dilute `#8E3B8A`, Popovic `#5F7316` | one fixed color (plus dash and marker) per model |
+| series | bounds `#6E7C7A`, SC `#C2620F`, GSC `#2F55C8`, Dilute `#8E3B8A`, Popovic `#5F7316`, Quatro fases `#9F2F4F`, Múltiplas fases `#5B4FB0` | one fixed color (plus dash and marker) per model |
+| concrete phases | paste `#3E6F8A`, fine `#7D4E1E`, coarse `#A85A0C`, ITZ `#6F6A58`, pores `#8F9C99` | paste in the matrix family, aggregates in the inclusion family, ITZs and pores neutral |
 
 - **Type:** Archivo (headings), Source Sans 3 (text), IBM Plex Mono (numbers and code), loaded from Google Fonts.
 - **Icons:** Material Symbols in Streamlit (`:material/bubble_chart:` as the page icon), plus inline SVG glyphs for the inclusion geometries (sphere, cylinder, disk) in `GLIFOS`.

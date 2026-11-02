@@ -3,6 +3,8 @@
 - ``figura_comparacao``: faixa Voigt–Reuss, curvas dos modelos e marcador do fi lido.
 - ``figura_modelo_individual``: um modelo por figura, nos ``limites_y`` comuns
   (Small Multiples).
+- ``figura_niveis``: concreto multiescala, E por nível com uma linha por modelo
+  e a referência experimental.
 """
 from typing import Optional, Tuple
 
@@ -13,6 +15,7 @@ from matplotlib.ticker import FuncFormatter
 
 from hoop.ui.calculo import (GRANDEZAS, LIMITES, REFERENCIA_PADRAO, CurvaModelo,
                              ResultadoAnalise, escolher_referencia, valor_em)
+from hoop.ui.concreto import ROTULOS_NIVEL, ResultadoConcreto
 from hoop.ui.formatacao import formatar_decimal, formatar_numero
 from hoop.ui.tema import CORES, MARCADORES, SERIES, TRACEJADOS, estilo_matplotlib
 
@@ -144,4 +147,44 @@ def figura_modelo_individual(resultado: ResultadoAnalise, nome: str, grandeza: s
         ax.set_xlim(0, resultado.entrada.fi_max * 1.02)
         ax.set_ylim(*(limites or limites_y(resultado, grandeza)))
         ax.set_title(nome, loc='left', fontsize=11, color=CORES['ink'], fontweight='bold')
+    return fig
+
+
+def figura_niveis(resultado: ResultadoConcreto, destaque: Optional[str] = None) -> Figure:
+    """E do concreto por nível (1, 2, 3): uma linha por modelo e o E experimental tracejado.
+
+    Modelos que pararam num nível mostram só os níveis calculados; ``destaque``
+    recebe traço mais grosso e o valor do último nível escrito ao lado.
+    """
+    n = resultado.numero_niveis
+    with estilo_matplotlib():
+        fig, ax = plt.subplots(figsize=(7.6, 3.8), layout='constrained')
+        exp = resultado.entrada.E_experimental
+        if exp is not None:
+            ax.axhline(exp, color=CORES['reference-line'], linewidth=1.2, linestyle=(0, (5, 3)),
+                       zorder=1, label='Experimental')
+            ax.annotate(f'Experimental {formatar_numero(exp)} MPa', (0, exp),
+                        xycoords=('axes fraction', 'data'), xytext=(4, 4),
+                        textcoords='offset points', fontsize=9, color=CORES['ink-muted'])
+        for nome, serie in resultado.series.items():
+            if not serie.niveis:
+                continue
+            xs = np.arange(1, len(serie.niveis) + 1)
+            ys = [nivel.resultado.Eh for nivel in serie.niveis]
+            grosso = nome == destaque
+            ax.plot(xs, ys, color=SERIES[nome], linestyle=TRACEJADOS.get(nome, '-'),
+                    marker=MARCADORES[nome] or 'o', markersize=6 if grosso else 5,
+                    linewidth=2.6 if grosso else 1.6, label=nome, zorder=4 if grosso else 3)
+            if grosso:
+                ax.annotate(formatar_numero(ys[-1]), (xs[-1], ys[-1]), xytext=(8, 0),
+                            textcoords='offset points', va='center', fontsize=9,
+                            color=SERIES[nome], fontweight='bold')
+        ax.set_xticks(np.arange(1, n + 1), ROTULOS_NIVEL[:n])
+        ax.set_xlim(0.8, n + 0.45)
+        ax.set_xlabel('nível de homogeneização')
+        ax.set_ylabel('E [MPa]')
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: formatar_numero(v)))
+        ax.grid(axis='x', visible=False)
+        if ax.get_legend_handles_labels()[0]:
+            fig.legend(loc='outside lower center', ncol=5, fontsize=9)
     return fig

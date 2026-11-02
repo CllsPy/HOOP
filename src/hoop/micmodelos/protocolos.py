@@ -19,3 +19,12 @@ class ModeloCondutividade(ABC):
     def homogeneizar_condutividade(self, composito) -> ResultadoCondutividade:
         """Homogeneíza um Composito de fases de condutividade, sem alterar estado algum."""
         ...
+
+
+class ModeloTresFases(ABC):
+    """Mixin: modelo de três fases (matriz + inclusão revestida)."""
+
+    @abstractmethod
+    def homogeneizar(self, composito) -> ResultadoMecanico:
+        """Homogeneíza um CompositoRevestido, sem alterar estado algum."""
+        ...

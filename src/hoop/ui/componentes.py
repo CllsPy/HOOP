@@ -1,7 +1,7 @@
 """Peças de interface reutilizadas pelas telas (Streamlit + CSS de ``hoop.ui.tema``).
 
-Funções que desenham: ``mapa_de_etapas``, ``cabecalho``, ``titulo_secao``,
-``titulo_fase``, ``estado_vazio``, ``aviso_dados_alterados``.
+Funções que desenham: ``mapa_de_etapas``, ``cabecalho``, ``seletor_modo``,
+``titulo_secao``, ``titulo_fase``, ``estado_vazio``, ``aviso_dados_alterados``.
 Funções que devolvem HTML para ``st.markdown(..., unsafe_allow_html=True)``:
 ``rotulo_fase``, ``amostra_serie``, ``glifo``.
 """
@@ -13,7 +13,8 @@ import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 
 from hoop.ui import estado as sessao
-from hoop.ui.estado import ETAPAS, ir_para
+from hoop.ui.concreto import FASES_CONCRETO
+from hoop.ui.estado import ETAPAS, MODOS, ir_para
 from hoop.ui.tema import GLIFOS, SERIES, TRACEJADOS
 
 VERSAO = 'HOOP v1.0 · baseado em Silva (2022)'
@@ -32,6 +33,12 @@ ETAPAS_INFO: Dict[str, Etapa] = {
     'relatorio': Etapa('Relatório', ':material/picture_as_pdf:', 'PDF com dados e resultados'),
 }
 
+DESCRICOES_CONCRETO: Dict[str, str] = {
+    'dados': 'Fases, ZTIs e poros',
+    'analise': 'E por nível e erro',
+}
+"""Descrições das etapas no modo concreto (o que falta vem de ``ETAPAS_INFO``)."""
+
 ICONES_ESTADO = {
     'concluida': ':material/check_circle:',
     'atual': ':material/radio_button_checked:',
@@ -42,7 +49,11 @@ ICONES_ESTADO = {
 FASES = {
     'matriz': ('Matriz', 'fase contínua', ':material/grid_on:'),
     'inclusao': ('Inclusão', 'partículas dispersas', ':material/bubble_chart:'),
+    **{f.chave: (f.nome, f.papel, f.icone) for f in FASES_CONCRETO.values()},
 }
+
+CHAVE_MODO = 'dados-modo'
+ICONES_MODO = {'duas_fases': ':material/bubble_chart:', 'concreto': ':material/stacks:'}
 
 
 def _estado_etapa(etapa: str, atual: str, liberadas: Iterable[str]) -> str:
@@ -54,10 +65,17 @@ def _estado_etapa(etapa: str, atual: str, liberadas: Iterable[str]) -> str:
     return 'concluida' if i < j else 'disponivel'
 
 
-def _descricao_etapa(etapa: str, estado: str, resumos: Dict[str, str]) -> str:
+def descricao_padrao(etapa: str, modo: str = sessao.DUAS_FASES) -> str:
+    """Descrição da etapa no ``modo`` ('duas_fases' ou 'concreto')."""
+    if modo == sessao.CONCRETO and etapa in DESCRICOES_CONCRETO:
+        return DESCRICOES_CONCRETO[etapa]
+    return ETAPAS_INFO[etapa].descricao
+
+
+def _descricao_etapa(etapa: str, estado: str, resumos: Dict[str, str], modo: str) -> str:
     if estado == 'bloqueada':
         return 'Disponível depois de calcular'
-    return resumos.get(etapa) or ETAPAS_INFO[etapa].descricao
+    return resumos.get(etapa) or descricao_padrao(etapa, modo)
 
 
 def marca() -> None:
@@ -67,11 +85,13 @@ def marca() -> None:
 
 
 def mapa_de_etapas(etapa_atual: str, liberadas: Iterable[str],
-                   resumos: Optional[Dict[str, str]] = None) -> None:
+                   resumos: Optional[Dict[str, str]] = None,
+                   modo: str = sessao.DUAS_FASES) -> None:
     """Sequence Map na barra lateral: marca, as 3 etapas e a versão.
 
     ``liberadas`` vem de ``estado.etapas_liberadas()``; ``resumos`` troca a
-    descrição de uma etapa (ex.: {'dados': 'Concreto · esfera · 5 modelos'}).
+    descrição de uma etapa (ex.: {'dados': 'Concreto · esfera · 5 modelos'});
+    ``modo`` escolhe as descrições padrão (as do concreto não falam de curvas).
     Clicar numa etapa liberada chama ``estado.ir_para``.
     """
     liberadas, resumos = set(liberadas), resumos or {}
@@ -84,7 +104,7 @@ def mapa_de_etapas(etapa_atual: str, liberadas: Iterable[str],
                           icon=ICONES_ESTADO[estado], type='tertiary',
                           disabled=estado == 'bloqueada',
                           on_click=ir_para, args=(etapa,))
-                st.caption(_descricao_etapa(etapa, estado, resumos))
+                st.caption(_descricao_etapa(etapa, estado, resumos, modo))
         st.caption(VERSAO)
 
 
@@ -102,6 +122,18 @@ def cabecalho(etapa_n: int, titulo: str, subtitulo: Optional[str] = None) -> Del
     return acoes
 
 
+def _ao_trocar_modo() -> None:
+    sessao.definir_modo(st.session_state[CHAVE_MODO])
+
+
+def seletor_modo() -> None:
+    """Segmented control "Duas fases | Concreto multiescala" no topo da etapa Dados."""
+    st.session_state.setdefault(CHAVE_MODO, sessao.modo_atual())
+    st.segmented_control('Tipo de compósito', options=list(MODOS), key=CHAVE_MODO,
+                         required=True, on_change=_ao_trocar_modo,
+                         format_func=lambda m: f'{ICONES_MODO[m]} {MODOS[m]}')
+
+
 def titulo_secao(icone: str, texto: str, detalhe: Optional[str] = None) -> None:
     """Título de seção com ícone Material (ex.: ``'science'``) e detalhe em cinza."""
     extra = f' <span class="hoop-mudo" style="font-size:13px">{escape(detalhe)}</span>' if detalhe else ''
@@ -109,12 +141,15 @@ def titulo_secao(icone: str, texto: str, detalhe: Optional[str] = None) -> None:
 
 
 def rotulo_fase(fase: str, texto: str) -> str:
-    """HTML do texto na cor da fase ('matriz' ou 'inclusao')."""
+    """HTML do texto na cor da fase ('matriz', 'inclusao' ou uma chave de ``tema.CORES_FASE``)."""
     return f'<span class="hoop-fase hoop-fase-{fase}">{escape(texto)}</span>'
 
 
 def titulo_fase(fase: str) -> None:
-    """Cabeçalho do PhaseCard: quadrado na cor da fase, ícone, nome e papel da fase."""
+    """Cabeçalho do PhaseCard: quadrado na cor da fase, ícone, nome e papel da fase.
+
+    ``fase`` é 'matriz', 'inclusao' ou uma chave de ``hoop.ui.concreto.FASES_CONCRETO``.
+    """
     nome, papel, icone = FASES[fase]
     st.markdown(
         f'#### <span class="hoop-fase-{fase}"><span class="hoop-quadrado" '

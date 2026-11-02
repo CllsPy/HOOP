@@ -15,6 +15,8 @@ class Popovic(Micmodelos, ModeloMecanico, ModeloCondutividade):
         self.tipo = 'popovic'
 
     def homogeneizar(self, composito):
+        self._exigir_inclusao_com_rigidez(
+            composito, 'Popovic', 'a parcela de Reuss é nula e a média perde o sentido')
         C = media_popovic(composito.fi, composito.inclusao.L, composito.matriz.L)
         return self._resultado_do_tensor(composito, C)
 

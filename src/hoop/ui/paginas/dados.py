@@ -13,7 +13,7 @@ import streamlit as st
 
 from hoop.ui.acoes import calcular_e_registrar
 from hoop.ui.calculo import MODELOS, fracoes
-from hoop.ui.componentes import cabecalho, amostra_serie, titulo_fase, titulo_secao
+from hoop.ui.componentes import cabecalho, amostra_serie, seletor_modo, titulo_fase, titulo_secao
 from hoop.ui.entrada import (GEOMETRIAS, GEOMETRIAS_DISPONIVEIS, PERSONALIZADO, PRESETS,
                              TIPOS_ANALISE, TIPOS_DISPONIVEIS, EntradaComposito, aplicar_preset,
                              preset_correspondente, resumo_entrada, rotulo_material, validar)
@@ -243,6 +243,7 @@ def render() -> None:
 
     cabecalho(1, 'Defina o compósito', 'Comece por um material conhecido ou digite as '
               'propriedades da matriz e da inclusão.')
+    seletor_modo()
     secao_preset()
     titulo_secao('layers', 'Fases')
     for coluna, fase in zip(st.columns(2), CAMPOS_FASE):

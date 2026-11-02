@@ -8,6 +8,7 @@ from hoop.micmodelos.protocolos import ModeloMecanico, ModeloCondutividade
 TOLERANCIA_PADRAO = 1e-8   # erro relativo de E entre iterações
 MAX_ITER_PADRAO = 500
 PLANO_TRANSVERSAL = (2, 1)  # (diagonal, acoplamento) de C lidos durante a iteração
+LIMIAR_POROS_ESFERA = 0.5   # fração de poros esféricos em que o Self-Consistent dá E = 0
 
 
 def condutividade_autoconsistente(fi, Ki, Km):
@@ -26,6 +27,13 @@ class SelfConsistent(Micmodelos, ModeloMecanico, ModeloCondutividade):
     def homogeneizar(self, composito):
         """Itera C até o ponto fixo, recalculando o tensor de Eshelby no meio efetivo."""
         fi, Cm, Ci = composito.fi, composito.matriz.L, composito.inclusao.L
+        if composito.inclusao.vazio and composito.geometria == 'esfera' \
+                and fi >= LIMIAR_POROS_ESFERA:
+            raise ValueError(
+                f"Self-Consistent prevê rigidez nula para poros esféricos a partir de "
+                f"fi = {LIMIAR_POROS_ESFERA:g} (limiar de percolação do modelo). "
+                f"Recebido: fi = {fi:g}. Reduza a fração de poros ou use Mori-Tanaka."
+            )
         S = composito.eshelby
         I = np.eye(6)
 

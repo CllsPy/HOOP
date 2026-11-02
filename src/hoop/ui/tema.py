@@ -2,7 +2,9 @@
 
 - ``CORES``: tokens de cor do ``tokens.json`` (chave = nome do token).
 - ``SERIES`` / ``MARCADORES`` / ``TRACEJADOS``: cor, marcador e estilo de linha
-  de cada modelo, pela chave de ``hoop.ui.calculo.MODELOS``.
+  de cada modelo, pela chave de ``hoop.ui.calculo.MODELOS`` (e dos modelos de
+  três fases de ``hoop.ui.concreto``).
+- ``CORES_FASE``: cor de cada fase (duas fases e as do concreto multiescala).
 - ``GLIFOS``: SVGs inline (marca e geometrias) com ``currentColor``.
 - ``aplicar_tema()``: injeta o CSS mínimo; chamar uma vez por execução.
 - ``estilo_matplotlib()``: contexto ``rc`` do DS para as figuras.
@@ -41,6 +43,16 @@ CORES: Dict[str, str] = {
     'series-gsc': '#2F55C8',
     'series-dilute': '#8E3B8A',
     'series-popovic': '#5F7316',
+    # Concreto multiescala: fases derivadas da paleta (pasta = família matriz,
+    # agregados = família inclusão, ZTIs e poros = neutros).
+    'phase-paste': '#3E6F8A',
+    'phase-fine': '#7D4E1E',
+    'phase-coarse': '#A85A0C',
+    'phase-itz': '#6F6A58',
+    'phase-pores': '#8F9C99',
+    'series-four-phase': '#9F2F4F',
+    'series-multi-phase': '#5B4FB0',
+    'reference-line': '#4F5E5C',
 }
 
 SERIES: Dict[str, str] = {
@@ -51,6 +63,8 @@ SERIES: Dict[str, str] = {
     'Self-Consistent': CORES['series-sc'],
     'GSC': CORES['series-gsc'],
     'Popovic': CORES['series-popovic'],
+    'Quatro fases': CORES['series-four-phase'],
+    'Múltiplas fases': CORES['series-multi-phase'],
 }
 
 MARCADORES: Dict[str, str] = {
@@ -61,6 +75,8 @@ MARCADORES: Dict[str, str] = {
     'GSC': '^',
     'Dilute Suspension': 'D',
     'Popovic': 'x',
+    'Quatro fases': 'o',
+    'Múltiplas fases': 's',
 }
 
 TRACEJADOS: Dict[str, str] = {'Voigt': '--', 'Reuss': '--'}
@@ -69,6 +85,14 @@ TRACEJADOS: Dict[str, str] = {'Voigt': '--', 'Reuss': '--'}
 CORES_FASE: Dict[str, str] = {
     'matriz': CORES['phase-matrix'],
     'inclusao': CORES['phase-inclusion'],
+    'pasta': CORES['phase-paste'],
+    'agregado_miudo': CORES['phase-fine'],
+    'agregado_graudo': CORES['phase-coarse'],
+    'zti_miudo': CORES['phase-itz'],
+    'zti_graudo': CORES['phase-itz'],
+    'poros': CORES['phase-pores'],
+    'argamassa': CORES['phase-paste'],
+    'concreto': CORES['phase-paste'],
 }
 
 FONTES = {
@@ -107,6 +131,12 @@ GLIFOS: Dict[str, str] = {
     ),
 }
 
+_CSS_FASES = '\n'.join(
+    f'.hoop-fase-{fase} {{ color: {cor}; }}'
+    for fase, cor in CORES_FASE.items() if fase not in ('matriz', 'inclusao', 'poros')
+) + f"\n.hoop-fase-poros {{ color: {CORES['ink-muted']}; }}"
+"""Poros: o tom de ``phase-pores`` não tem contraste para texto; o rótulo usa ink-muted."""
+
 _CSS = f"""
 <style>
 [data-testid="stMetricValue"], .hoop-dado {{
@@ -131,6 +161,18 @@ _CSS = f"""
 .hoop-fase {{ font-weight: 600; }}
 .hoop-fase-matriz {{ color: {CORES['phase-matrix']}; }}
 .hoop-fase-inclusao {{ color: {CORES['phase-inclusion']}; }}
+{_CSS_FASES}
+.hoop-niveis {{ display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; }}
+.hoop-nivel {{
+  flex: 1 1 220px; min-width: 0; background: {CORES['surface-1']};
+  border: 1px solid {CORES['line']}; border-radius: 10px; padding: 12px 16px;
+}}
+.hoop-nivel-titulo {{ font-weight: 600; margin-bottom: 8px; }}
+.hoop-nivel-barra {{ display: flex; height: 12px; border-radius: 4px; overflow: hidden;
+  background: {CORES['surface-2']}; margin-bottom: 8px; }}
+.hoop-nivel-linha {{ display: flex; justify-content: space-between; gap: 8px;
+  font-size: 14px; line-height: 22px; }}
+.hoop-nivel-seta {{ align-self: center; color: {CORES['ink-muted']}; }}
 .hoop-quadrado {{
   display: inline-block; width: 12px; height: 12px; border-radius: 2px;
   margin-right: 8px; vertical-align: 0;
