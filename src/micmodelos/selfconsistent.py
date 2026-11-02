@@ -1,128 +1,59 @@
 import numpy as np
+
+from mecanico.tensores import propriedades_isotropicas
 from micmodelos.micmodelos import Micmodelos
+from micmodelos.protocolos import ModeloMecanico, ModeloCondutividade
+
+TOLERANCIA_PADRAO = 1e-8   # erro relativo de E entre iterações
+MAX_ITER_PADRAO = 500
+PLANO_TRANSVERSAL = (2, 1)  # (diagonal, acoplamento) de C lidos durante a iteração
 
 
-class SelfConsistent(Micmodelos):
+def condutividade_autoconsistente(fi, Ki, Km):
+    """Solução fechada do Self-Consistent para condutividade com inclusões esféricas."""
+    b = (3 * fi - 1) * Ki + (3 * (1 - fi) - 1) * Km
+    return (1 / 4) * (b + np.sqrt(b ** 2 + 8 * Km * Ki))
+
+
+class SelfConsistent(Micmodelos, ModeloMecanico, ModeloCondutividade):
     def __init__(self):
         super().__init__()
-        self.tol = 1e-8
-        self.N3 = 10
-        self.max_iter = 500
         self.tipo = 'Self-Consistent'
-        self.K11 = None
-        self.K22 = None
-        self.K33 = None
+        self.tol = TOLERANCIA_PADRAO
+        self.max_iter = MAX_ITER_PADRAO
 
-    def set(self, Em, vm, Ei, vi, fi):
-        self.Em = Em
-        self.Ei = Ei
-        self.vm = vm
-        self.vi = vi
-        self.fi = fi
+    def calc_mecanico(self, objH):
+        """Itera C até o ponto fixo, recalculando o tensor de Eshelby no meio efetivo."""
+        self._ler_fases_mecanicas(objH)
+        fi, Cm, Ci = self.fi, self.Cm, self.Ci
+        matriz = objH.matH[0]
+        S = matriz.S
+        I = np.eye(6)
 
-    def calc(self, objH):
-        # self.status = 'supported'
-        # homo_analH_type = homo.analH['type']
+        Co = Cm
+        erro = np.inf
+        iteracoes = 0
+        while erro > self.tol:
+            # Forma simétrica C = (Σ fr Cr Ar)(Σ fr Ar)^-1: mesmo ponto fixo que
+            # Cm + fi (Ci - Cm) Ai, mas converge também para inclusões mais flexíveis que a matriz
+            Ai = np.linalg.inv(I + S @ np.linalg.inv(Co) @ (Ci - Co))
+            Am = np.linalg.inv(I + S @ np.linalg.inv(Co) @ (Cm - Co))
+            C = (fi * Ci @ Ai + (1 - fi) * Cm @ Am) @ np.linalg.inv(fi * Ai + (1 - fi) * Am)
 
-        if objH.analH.analise_type == 'mecanica':
-            fi = objH.analH.fi
-            S = objH.matH[0].S
-            Em = objH.matH[0].E
-            vm = objH.matH[0].v
-            Cm = objH.matH[0].L
-            Ei = objH.matH[1].E
-            vi = objH.matH[1].v
-            Ci = objH.matH[1].L
+            E, v, _, _ = propriedades_isotropicas(C, PLANO_TRANSVERSAL)
+            E_anterior = propriedades_isotropicas(Co, PLANO_TRANSVERSAL)[0]
+            S = matriz.montaS(E, v)
+            erro = abs(abs(E) - abs(E_anterior)) / abs(E_anterior)
 
-            I = np.eye(6)
+            Co = C
+            iteracoes += 1
+            if erro > self.tol and iteracoes >= self.max_iter:
+                raise RuntimeError(
+                    f"Self-Consistent não convergiu em {self.max_iter} iterações (erro={erro:.3g})."
+                )
 
-            Co = Cm  # initial condition
+        self._registrar_tensor_mecanico(C)
 
-            # tolerância
-            tol = self.tol
-            N3 = self.N3
-            nite = 0
-
-            while N3 > tol:
-
-                # Forma simétrica C = (Σ fr Cr Ar)(Σ fr Ar)^-1: mesmo ponto fixo que
-                # Cm + fi (Ci - Cm) Ai, mas converge também para inclusões mais flexíveis que a matriz
-                Ai = np.linalg.inv(I + S @ np.linalg.inv(Co) @ (Ci - Co))
-                Am = np.linalg.inv(I + S @ np.linalg.inv(Co) @ (Cm - Co))
-                C = (fi * Ci @ Ai + (1 - fi) * Cm @ Am) @ np.linalg.inv(fi * Ai + (1 - fi) * Am)
-
-                E = (-2 * C[2, 1] ** 2 + C[2, 1] * C[2, 2] + C[2, 2] ** 2) / (C[2, 1] + C[2, 2])
-                v = C[2, 1] / (C[2, 1] + C[2, 2])
-
-                S = objH.matH[0].montaS(E,v)
-
-                N1 = E
-                N2 = (-2 * Co[2, 1] ** 2 + Co[2, 1] * Co[2, 2] + Co[2, 2] ** 2) / (Co[2, 1] + Co[2, 2])
-                N3 = np.absolute(np.absolute(N1) - np.absolute(N2)) / np.absolute(N2)
-
-                #N1 = np.linalg.norm(C)
-                #N2 = np.linalg.norm(Co)
-                #N3 = np.sqrt(((N1 - N2) / N2) ** 2)
-                # print(N3)
-
-                Co = C
-                nite += 1
-                if N3 > tol and nite >= self.max_iter:
-                    raise RuntimeError(
-                        f"Self-Consistent não convergiu em {self.max_iter} iterações (erro={N3:.3g})."
-                    )
-
-            self.Eh = (-2 * C[0, 1] ** 2 + C[0, 1] * C[0, 0] + C[0, 0] ** 2) / (C[0, 1] + C[0, 0])
-            self.vh = C[0, 1] / (C[0, 1] + C[0, 0])
-
-            kh = self.Eh / (3 * (1 - 2 * self.vh))
-            Gh = self.Eh / (2 * (1 + self.vh))
-            self.kh = kh
-            self.Gh = Gh
-
-            self.C = C
-            self.Ci = Ci
-            self.Cm = Cm
-            self.fi = fi
-            self.Em = Em
-            self.vm = vm
-            self.Ei = Ei
-            self.vi = vi
-
-
-
-        elif  objH.analH.analise_type == 'condutividade':
-            fi = objH.analH.fi
-            Km = objH.matH[0].K
-            S = objH.matH[0].S
-            Ki = objH.matH[1].K
-
-            I = np.eye(3)
-            Ko = Km  # initial condition
-
-            tol = self.tol
-            N3 = self.N3
-            nite = 0
-
-            while N3 > tol:
-                K = (1 / 4) * ((3 * fi - 1) * Ki + (3 * (1 - fi) - 1) * Km + np.sqrt(
-                    ((3 * fi - 1) * Ki + (3 * (1 - fi) - 1) * Km) ** 2 + 8 * Km * Ki))
-
-                N1 = np.linalg.norm(K)
-                N2 = np.linalg.norm(Ko)
-                N3 = np.sqrt(((N1 - N2) / N2) ** 2)
-
-                Ko = K
-                nite += 1
-
-            self.kh = K
-            self.fi = fi
-            self.Km = Km
-            self.Ki = Ki
-
-            self.K11 = self.kh[0, 0]
-            self.K22 = self.kh[1, 1]
-            self.K33 = self.kh[2, 2]
-
-
-
+    def calc_condutividade(self, objH):
+        self._ler_fases_condutividade(objH)
+        self._registrar_tensor_condutividade(condutividade_autoconsistente(self.fi, self.Ki, self.Km))

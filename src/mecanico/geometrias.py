@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 import numpy as np
 import math
 
+RAZAO_ASPECTO_PADRAO = 0.03 / 100  # diâmetro / comprimento da fibra
+
 
 class GeometriaEshelby(ABC):
     """Protocolo: calcula o tensor de Eshelby S (6x6) para uma dada geometria de inclusão."""
@@ -28,8 +30,8 @@ class GeometriaEsfera(GeometriaEshelby):
 class GeometriaCilindro(GeometriaEshelby):
     nome = 'cilindro'
 
-    def __init__(self, razao_aspecto: float = 0.03 / 100):
-        self.razao_aspecto = razao_aspecto  # diâmetro / comprimento da fibra
+    def __init__(self, razao_aspecto: float = RAZAO_ASPECTO_PADRAO):
+        self.razao_aspecto = razao_aspecto
 
     def calcular_S(self, E: float, v: float,
                    P: np.ndarray, L: np.ndarray) -> np.ndarray:
